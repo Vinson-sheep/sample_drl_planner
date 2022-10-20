@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="Avatar">
+
+<link name="base_footprint">
+    <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+            <box size="0.001 0.001 0.001" />
+        </geometry>
+    </visual>
+</link>
+        
+<joint name="base_footprint_joint" type="fixed">
+    <origin xyz="0 0 0" rpy="0 0 0" />        
+    <parent link="base_footprint"/>
+    <child link="base_link" />
+</joint>
+
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-0.17283 -0.059477 0.10769"
+        rpy="0 0 0" />
+      <mass
+        value="0.57712" />
+      <inertia
+        ixx="0.0015401"
+        ixy="-4.6365E-07"
+        ixz="6.3728E-10"
+        iyy="0.00061714"
+        iyz="-3.967E-06"
+        izz="0.0020663" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://uav_simulator/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="grey_blue">
+        <color
+          rgba="0.4 0.4 1.0 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://uav_simulator/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+</robot>
