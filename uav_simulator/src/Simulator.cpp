@@ -135,8 +135,8 @@ bool Simulator::ResetMapAndDisplay() {
   for (int32_t i=0; i < _num_obs; i++) {
     _mk_msg.pose.position = pos_obs_[i];
     _mk_msg.id = i;    
-    _mk_msg.scale.x = radius_obs_[i]/2;
-    _mk_msg.scale.y = radius_obs_[i]/2;
+    _mk_msg.scale.x = radius_obs_[i] * 2;
+    _mk_msg.scale.y = radius_obs_[i] * 2;
     _mk_arr_msg.markers.push_back(_mk_msg);
   }
   // visualize goal position
@@ -184,8 +184,8 @@ void Simulator::UpdateModel(uav_simulator::State &state, const uav_simulator::Co
   double _yaw, _pitch, _roll;
   tf2::getEulerYPR(state.pose.orientation, _yaw, _pitch, _roll);
   // modify position
-  double _dx = control.linear_velocity * cos(_yaw);
-  double _dy = control.linear_velocity * sin(_yaw);
+  double _dx = control.linear_velocity * cos(_yaw + M_PI_2);
+  double _dy = control.linear_velocity * sin(_yaw + M_PI_2);
   state.pose.position.x += _dx;
   state.pose.position.y += _dy;
   // modify orientation
