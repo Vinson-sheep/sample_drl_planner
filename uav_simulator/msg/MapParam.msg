@@ -1,0 +1,8 @@
+float32 target_distance
+float32 safe_radius
+float32 length_x
+float32 length_y
+int32 num_obs_max
+int32 num_obs_min
+float32 radius_obs_max
+float32 radius_obs_min
