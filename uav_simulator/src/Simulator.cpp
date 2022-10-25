@@ -14,7 +14,7 @@ Simulator::Simulator() {
     uav_radius_ = 0.1;
     uav_max_linear_velocity_ = 1.0;
     uav_max_yaw_rate_ = M_PI_2;
-    flight_height_ = 2.0;
+    flight_height_ = 0.5;
     state_.pose.orientation.w = 1.0;
     intergrate_dt_ = 0.01;
     // Publisher
@@ -55,6 +55,7 @@ void Simulator::MainLoopCB(const ros::TimerEvent &event) {
 
 bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req, uav_simulator::ResetMap::Response &resp) {
   //
+  // update parameters
   target_distance_ = req.param.target_distance;
   safe_radius_ = req.param.safe_radius;
   length_x_ = req.param.length_x;
@@ -63,6 +64,13 @@ bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req, uav_simulator::R
   num_obs_min_ = req.param.num_obs_min;
   radius_obs_max_ = req.param.radius_obs_max;
   radius_obs_min_ = req.param.radius_obs_min;
+  // update start and goal position
+  _goal.x = 0;
+  _goal.y = target_distance_/2;
+  _goal.z = flight_height_;
+  _start.x = 0;
+  _start.y = -target_distance_/2;
+  _start.z = flight_height_;
 
   ResetMapAndDisplay();
 
@@ -73,24 +81,17 @@ bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req, uav_simulator::R
 
 bool Simulator::ResetMapAndDisplay() {
   //
-  // update start and goal position
-  _goal.x = 0;
-  _goal.y = target_distance_/2;
-  _goal.z = flight_height_;
-  _start.x = 0;
-  _start.y = -target_distance_/2;
-  _start.z = flight_height_;
-  // get obstacle number
-  int32_t _num_obs = num_obs_min_ + rand() % (num_obs_max_ -num_obs_min_ + 1);
   // initialize marker style
   visualization_msgs::Marker _mk_msg;
   _mk_msg.header.frame_id = "map";
   _mk_msg.header.stamp = ros::Time::now();
   _mk_msg.type = visualization_msgs::Marker::CYLINDER;
   _mk_msg.pose.orientation.w = 1;
+  // get obstacle number
+  int32_t _num_obs = num_obs_min_ + rand() % (num_obs_max_ -num_obs_min_ + 1);
   // delete original obstalces
   visualization_msgs::MarkerArray _mk_arr_msg;
-  for (int32_t i=0; i < pos_obs_.size(); i++) {
+  for (int32_t i=0; i < pos_obs_.size() + 1; i++) { // +1: delele target 
     _mk_msg.id = i;
     _mk_msg.action = visualization_msgs::Marker::DELETE;
     _mk_arr_msg.markers.push_back(_mk_msg);
@@ -108,7 +109,7 @@ bool Simulator::ResetMapAndDisplay() {
   for (int32_t i=0; i < _num_obs; i++) {
     // randomize position and size
     geometry_msgs::Point _point;
-    _point.z = 0.0;
+    _point.z = 0.5;
     double _radius;
     while (true) { 
       // obstacle should keep away from safe areas
@@ -138,8 +139,29 @@ bool Simulator::ResetMapAndDisplay() {
     _mk_msg.scale.y = radius_obs_[i]/2;
     _mk_arr_msg.markers.push_back(_mk_msg);
   }
+  // visualize goal position
+  _mk_msg.color.r = 1.0;
+  _mk_msg.color.g = 0.0;
+  _mk_msg.color.b = 0.0;
+  _mk_msg.color.a= 0.9;
+  _mk_msg.type = visualization_msgs::Marker::SPHERE;
+  _mk_msg.scale.x = 0.2;
+  _mk_msg.scale.y = 0.2;
+  _mk_msg.scale.z = 0.2;
+  _mk_msg.pose.position = _goal;
+  _mk_arr_msg.markers.push_back(_mk_msg);
+  // reset uav pose
+  state_.pose.position = _start;
+  std::uniform_real_distribution<double> _yaw_distribution(-M_PI_2, M_PI_2);
+  double _yaw = _yaw_distribution(_e);
+  tf2::Quaternion _qtn;
+  _qtn.setRPY(0, 0, _yaw);
+  state_.pose.orientation.x = _qtn.x();  
+  state_.pose.orientation.y = _qtn.y();  
+  state_.pose.orientation.z = _qtn.z();  
+  state_.pose.orientation.w = _qtn.w();
+  // publish
   grid_map_publisher_.publish(_mk_arr_msg);
-
 }
 
 bool Simulator::SetUAVPose(uav_simulator::SetUavPose::Request &req, uav_simulator::SetUavPose::Response &resp) {
