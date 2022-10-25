@@ -73,6 +73,13 @@ bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req, uav_simulator::R
 
 bool Simulator::ResetMapAndDisplay() {
   //
+  // update start and goal position
+  _goal.x = 0;
+  _goal.y = target_distance_/2;
+  _goal.z = flight_height_;
+  _start.x = 0;
+  _start.y = -target_distance_/2;
+  _start.z = flight_height_;
   // get obstacle number
   int32_t _num_obs = num_obs_min_ + rand() % (num_obs_max_ -num_obs_min_ + 1);
   // initialize marker style
@@ -93,21 +100,29 @@ bool Simulator::ResetMapAndDisplay() {
   pos_obs_.clear();
   radius_obs_.clear();
   ros::spinOnce();
-
   // generate new obstacles
   std::uniform_real_distribution<double> _x_distribution(-length_x_/2, length_x_/2);
   std::uniform_real_distribution<double> _y_distribution(-length_y_/2, length_y_/2);
   std::uniform_real_distribution<double> _radius_distribution(radius_obs_min_, radius_obs_max_);
   std::default_random_engine _e(time(NULL));
   for (int32_t i=0; i < _num_obs; i++) {
-    // randomize position
+    // randomize position and size
     geometry_msgs::Point _point;
-    _point.x = _x_distribution(_e);
-    _point.y = _y_distribution(_e);
     _point.z = 0.0;
+    double _radius;
+    while (true) { 
+      // obstacle should keep away from safe areas
+      _point.x = _x_distribution(_e);
+      _point.y = _y_distribution(_e);
+      _radius = _radius_distribution(_e);
+      double _dist_start = Distance(_point, _start);
+      double _dist_goal = Distance(_point, _goal);
+      if (_dist_start > (safe_radius_ + _radius) &&
+          _dist_goal > (safe_radius_ + _radius))
+        break;
+    }
     pos_obs_.push_back(_point);
-    // randomize size
-    radius_obs_.push_back(_radius_distribution(_e));
+    radius_obs_.push_back(_radius);
   }
   // visualize obstacles
   _mk_msg.color.r = 1.0;

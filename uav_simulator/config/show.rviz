@@ -5,11 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Status1
-        - /Grid1
-        - /RobotModel1
         - /MarkerArray1
-        - /LaserScan1
       Splitter Ratio: 0.5
     Tree Height: 728
   - Class: rviz/Selection
@@ -118,6 +114,26 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        base_link:
+          Value: true
+        map:
+          Value: true
+      Marker Scale: 1
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        map:
+          base_link:
+            {}
+      Update Interval: 0
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 139; 200; 255
@@ -146,25 +162,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 9.482487678527832
+      Distance: 2.2073915004730225
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -1.5625325441360474
-        Y: 0.1759515106678009
-        Z: 0.46777090430259705
+        X: 0.019714046269655228
+        Y: -0.20886115729808807
+        Z: 0.3652782440185547
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.6497984528541565
+      Pitch: 1.3397963047027588
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.4044928550720215
+      Yaw: 3.8644983768463135
     Saved: ~
 Window Geometry:
   Displays:
