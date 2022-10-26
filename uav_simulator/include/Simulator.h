@@ -33,6 +33,8 @@ private:
   // uav state
   double crash_limit_;
   double arrive_limit_;
+  double angle_max_;
+  double angle_min_;
   double range_min_;
   double range_max_;
   int32_t num_laser_;
@@ -61,6 +63,7 @@ private:
 
   // Publisher & tf
   ros::Publisher grid_map_publisher_;
+  ros::Publisher laser_scan_publisher_;
   tf2_ros::TransformBroadcaster broadcaster_;
 
   // Servicer

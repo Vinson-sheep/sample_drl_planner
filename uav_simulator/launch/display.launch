@@ -13,4 +13,5 @@
     pkg="rviz"
     type="rviz"
     args="-d $(find uav_simulator)/config/show.rviz" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="son2" args="0 0 0 -1.57 0 0 /laser_scan /base_link" output="screen" />
 </launch>

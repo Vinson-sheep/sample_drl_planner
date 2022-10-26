@@ -9,7 +9,9 @@ Simulator::Simulator()
   // uav state
   crash_limit_ = 0.2;
   arrive_limit_ = 0.2;
-  range_max_ = 5.0;
+  angle_max_ = 2 * M_PI / 3;
+  angle_min_ = -2 * M_PI / 3;
+  range_max_ = 3.0;
   range_min_ = 0.15;
   num_laser_ = 9;
   uav_radius_ = 0.1;
@@ -20,6 +22,7 @@ Simulator::Simulator()
   intergrate_dt_ = 0.01;
   // Publisher
   grid_map_publisher_ = _nh.advertise<visualization_msgs::MarkerArray>("grid_map", 10);
+  laser_scan_publisher_ = _nh.advertise<sensor_msgs::LaserScan>("laser_scan", 10);
 
   // Servicer
   reset_map_server_ = _nh.advertiseService("reset_map", &Simulator::ResetMap, this);
@@ -40,9 +43,9 @@ void Simulator::MainLoopCB(const ros::TimerEvent &event)
 
   // send uav pose
   geometry_msgs::TransformStamped _tf_msg;
-  _tf_msg.header.frame_id = "map";
+  _tf_msg.header.frame_id = "base_link";
   _tf_msg.header.stamp = ros::Time::now();
-  _tf_msg.child_frame_id = "base_link";
+  _tf_msg.child_frame_id = "map";
   _tf_msg.transform.translation.x = state_.pose.position.x;
   _tf_msg.transform.translation.y = state_.pose.position.y;
   _tf_msg.transform.translation.z = state_.pose.position.z;
@@ -52,8 +55,9 @@ void Simulator::MainLoopCB(const ros::TimerEvent &event)
   _tf_msg.transform.rotation.w = state_.pose.orientation.w;
   broadcaster_.sendTransform(_tf_msg);
 
-  // send laser scan (TODO)
+  // send laser scan
   UpdateLaserScan();
+  laser_scan_publisher_.publish(state_.scan);
 }
 
 bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req, uav_simulator::ResetMap::Response &resp)
@@ -172,7 +176,24 @@ bool Simulator::ResetMapAndDisplay()
   // publish
   grid_map_publisher_.publish(_mk_arr_msg);
 }
-
+bool Simulator::UpdateLaserScan() {
+  //
+  state_.scan.angle_max = angle_max_;
+  state_.scan.angle_min = angle_min_;
+  state_.scan.angle_increment = (angle_max_ - angle_min_) / (num_laser_ - 1);
+  state_.scan.header.frame_id = "laser_scan";
+  state_.scan.header.stamp = ros::Time::now();
+  state_.scan.range_max = range_max_;
+  state_.scan.range_min = range_min_;
+  state_.scan.ranges.clear();
+  state_.scan.intensities.clear();
+  state_.scan.time_increment = 0.02;
+  for (int32_t i = 0; i < num_laser_; i++) {
+    state_.scan.ranges.push_back(range_max_-0.1);
+    state_.scan.intensities.push_back(99999);
+  }
+  return true;
+}
 bool Simulator::SetUAVPose(uav_simulator::SetUavPose::Request &req, uav_simulator::SetUavPose::Response &resp)
 {
   //
