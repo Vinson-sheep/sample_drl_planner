@@ -20,6 +20,17 @@ Simulator::Simulator()
   flight_height_ = 0.5;
   state_.pose.orientation.w = 1.0;
   intergrate_dt_ = 0.01;
+
+  // grid map
+  target_distance_ = 8.0;
+  safe_radius_ = 0.25;
+  length_x_ = 15;
+  length_y_ = 15;
+  num_obs_max_ = 20;
+  num_obs_min_ = 20;
+  radius_obs_max_ = 2.0;
+  radius_obs_min_ = 0.25;
+
   // Publisher
   grid_map_publisher_ = _nh.advertise<visualization_msgs::MarkerArray>("grid_map", 10);
   laser_scan_publisher_ = _nh.advertise<sensor_msgs::LaserScan>("laser_scan", 10);
@@ -31,6 +42,7 @@ Simulator::Simulator()
 
   // Timer
   mainloop_timer_ = _nh.createTimer(ros::Duration(0.02), &Simulator::MainLoopCB, this);
+
 }
 
 Simulator::~Simulator()
@@ -43,9 +55,9 @@ void Simulator::MainLoopCB(const ros::TimerEvent &event)
 
   // send uav pose
   geometry_msgs::TransformStamped _tf_msg;
-  _tf_msg.header.frame_id = "base_link";
+  _tf_msg.header.frame_id = "map";
   _tf_msg.header.stamp = ros::Time::now();
-  _tf_msg.child_frame_id = "map";
+  _tf_msg.child_frame_id = "base_link";
   _tf_msg.transform.translation.x = state_.pose.position.x;
   _tf_msg.transform.translation.y = state_.pose.position.y;
   _tf_msg.transform.translation.z = state_.pose.position.z;
@@ -73,12 +85,12 @@ bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req, uav_simulator::R
   radius_obs_max_ = req.param.radius_obs_max;
   radius_obs_min_ = req.param.radius_obs_min;
   // update start and goal position
-  _goal.x = 0;
-  _goal.y = target_distance_ / 2;
-  _goal.z = flight_height_;
-  _start.x = 0;
-  _start.y = -target_distance_ / 2;
-  _start.z = flight_height_;
+  goal_.x = 0;
+  goal_.y = target_distance_ / 2;
+  goal_.z = flight_height_;
+  start_.x = 0;
+  start_.y = -target_distance_ / 2;
+  start_.z = flight_height_;
 
   ResetMapAndDisplay();
 
@@ -128,8 +140,8 @@ bool Simulator::ResetMapAndDisplay()
       _point.x = _x_distribution(_e);
       _point.y = _y_distribution(_e);
       _radius = _radius_distribution(_e);
-      double _dist_start = Distance(_point, _start);
-      double _dist_goal = Distance(_point, _goal);
+      double _dist_start = Distance(_point, start_);
+      double _dist_goal = Distance(_point, goal_);
       if (_dist_start > (safe_radius_ + _radius) &&
           _dist_goal > (safe_radius_ + _radius))
         break;
@@ -161,10 +173,10 @@ bool Simulator::ResetMapAndDisplay()
   _mk_msg.scale.x = 0.2;
   _mk_msg.scale.y = 0.2;
   _mk_msg.scale.z = 0.2;
-  _mk_msg.pose.position = _goal;
+  _mk_msg.pose.position = goal_;
   _mk_arr_msg.markers.push_back(_mk_msg);
   // reset uav pose
-  state_.pose.position = _start;
+  state_.pose.position = start_;
   std::uniform_real_distribution<double> _yaw_distribution(-M_PI_2, M_PI_2);
   double _yaw = _yaw_distribution(_e);
   tf2::Quaternion _qtn;
@@ -187,7 +199,7 @@ bool Simulator::UpdateLaserScan() {
   state_.scan.range_min = range_min_;
   state_.scan.ranges.clear();
   state_.scan.intensities.clear();
-  state_.scan.time_increment = 0.02;
+  state_.scan.time_increment = 0.01;
   for (int32_t i = 0; i < num_laser_; i++) {
     state_.scan.ranges.push_back(range_max_-0.1);
     state_.scan.intensities.push_back(99999);

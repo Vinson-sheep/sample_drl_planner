@@ -58,8 +58,8 @@ private:
   double radius_obs_min_;
   vector<geometry_msgs::Point> pos_obs_;
   vector<double> radius_obs_;
-  geometry_msgs::Point _goal;
-  geometry_msgs::Point _start;
+  geometry_msgs::Point goal_;
+  geometry_msgs::Point start_;
 
   // Publisher & tf
   ros::Publisher grid_map_publisher_;
