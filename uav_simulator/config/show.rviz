@@ -6,7 +6,9 @@ Panels:
       Expanded:
         - /Global Options1
         - /MarkerArray1
+        - /MarkerArray1/Status1
         - /LaserScan1
+        - /LaserScan1/Status1
       Splitter Ratio: 0.5
     Tree Height: 1537
   - Class: rviz/Selection
@@ -102,10 +104,10 @@ Visualization Manager:
       Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Min Color: 0; 0; 0
+      Min Color: 115; 210; 22
       Name: LaserScan
       Position Transformer: XYZ
-      Queue Size: 10
+      Queue Size: 100
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.10000000149011612
@@ -113,7 +115,7 @@ Visualization Manager:
       Topic: laser_scan
       Unreliable: false
       Use Fixed Frame: true
-      Use rainbow: true
+      Use rainbow: false
       Value: true
     - Class: rviz/TF
       Enabled: true
@@ -132,9 +134,9 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        laser_scan:
+        map:
           base_link:
-            map:
+            laser_scan:
               {}
       Update Interval: 0
       Value: true
@@ -166,25 +168,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 11.961416244506836
+      Distance: 20.715347290039062
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -1.4494842290878296
-        Y: 2.6613175868988037
-        Z: -0.2451932728290558
-      Focal Shape Fixed Size: true
+        X: 0.04903513938188553
+        Y: -3.1869208812713623
+        Z: -0.11382031440734863
+      Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.8597966432571411
+      Pitch: 1.1847971677780151
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.137690544128418
+      Yaw: 5.6686110496521
     Saved: ~
 Window Geometry:
   Displays:

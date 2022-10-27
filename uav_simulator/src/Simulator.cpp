@@ -1,8 +1,6 @@
 #include "Simulator.h"
 
-Simulator::Simulator()
-{
-
+Simulator::Simulator() {
   ros::NodeHandle _nh;
   ros::NodeHandle _private_nh;
 
@@ -13,7 +11,7 @@ Simulator::Simulator()
   angle_min_ = -2 * M_PI / 3;
   range_max_ = 3.0;
   range_min_ = 0.15;
-  num_laser_ = 9;
+  num_laser_ = 40;
   uav_radius_ = 0.1;
   uav_max_linear_velocity_ = 1.0;
   uav_max_yaw_rate_ = M_PI_2;
@@ -32,25 +30,26 @@ Simulator::Simulator()
   radius_obs_min_ = 0.25;
 
   // Publisher
-  grid_map_publisher_ = _nh.advertise<visualization_msgs::MarkerArray>("grid_map", 10);
-  laser_scan_publisher_ = _nh.advertise<sensor_msgs::LaserScan>("laser_scan", 10);
+  grid_map_publisher_ =
+      _nh.advertise<visualization_msgs::MarkerArray>("grid_map", 10);
+  laser_scan_publisher_ =
+      _nh.advertise<sensor_msgs::LaserScan>("laser_scan", 10);
 
   // Servicer
-  reset_map_server_ = _nh.advertiseService("reset_map", &Simulator::ResetMap, this);
-  set_uav_pose_server_ = _nh.advertiseService("set_uav_pose", &Simulator::SetUAVPose, this);
+  reset_map_server_ =
+      _nh.advertiseService("reset_map", &Simulator::ResetMap, this);
+  set_uav_pose_server_ =
+      _nh.advertiseService("set_uav_pose", &Simulator::SetUAVPose, this);
   step_server_ = _nh.advertiseService("step", &Simulator::Step, this);
 
   // Timer
-  mainloop_timer_ = _nh.createTimer(ros::Duration(0.02), &Simulator::MainLoopCB, this);
-
+  mainloop_timer_ =
+      _nh.createTimer(ros::Duration(0.02), &Simulator::MainLoopCB, this);
 }
 
-Simulator::~Simulator()
-{
-}
+Simulator::~Simulator() {}
 
-void Simulator::MainLoopCB(const ros::TimerEvent &event)
-{
+void Simulator::MainLoopCB(const ros::TimerEvent &event) {
   //
 
   // send uav pose
@@ -72,8 +71,8 @@ void Simulator::MainLoopCB(const ros::TimerEvent &event)
   laser_scan_publisher_.publish(state_.scan);
 }
 
-bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req, uav_simulator::ResetMap::Response &resp)
-{
+bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req,
+                         uav_simulator::ResetMap::Response &resp) {
   //
   // update parameters
   target_distance_ = req.param.target_distance;
@@ -99,8 +98,7 @@ bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req, uav_simulator::R
   return true;
 }
 
-bool Simulator::ResetMapAndDisplay()
-{
+bool Simulator::ResetMapAndDisplay() {
   //
   // initialize marker style
   visualization_msgs::Marker _mk_msg;
@@ -110,10 +108,10 @@ bool Simulator::ResetMapAndDisplay()
   _mk_msg.pose.orientation.w = 1;
   // get obstacle number
   int32_t _num_obs = num_obs_min_ + rand() % (num_obs_max_ - num_obs_min_ + 1);
+  std::cout << _num_obs << std::endl;
   // delete original obstalces
   visualization_msgs::MarkerArray _mk_arr_msg;
-  for (int32_t i = 0; i < pos_obs_.size() + 1; i++)
-  { // +1: delele target
+  for (int32_t i = 0; i < pos_obs_.size() + 1; i++) {  // +1: delele target
     _mk_msg.id = i;
     _mk_msg.action = visualization_msgs::Marker::DELETE;
     _mk_arr_msg.markers.push_back(_mk_msg);
@@ -124,18 +122,19 @@ bool Simulator::ResetMapAndDisplay()
   radius_obs_.clear();
   ros::spinOnce();
   // generate new obstacles
-  std::uniform_real_distribution<double> _x_distribution(-length_x_ / 2, length_x_ / 2);
-  std::uniform_real_distribution<double> _y_distribution(-length_y_ / 2, length_y_ / 2);
-  std::uniform_real_distribution<double> _radius_distribution(radius_obs_min_, radius_obs_max_);
+  std::uniform_real_distribution<double> _x_distribution(-length_x_ / 2,
+                                                         length_x_ / 2);
+  std::uniform_real_distribution<double> _y_distribution(-length_y_ / 2,
+                                                         length_y_ / 2);
+  std::uniform_real_distribution<double> _radius_distribution(radius_obs_min_,
+                                                              radius_obs_max_);
   std::default_random_engine _e(time(NULL));
-  for (int32_t i = 0; i < _num_obs; i++)
-  {
+  for (int32_t i = 0; i < _num_obs; i++) {
     // randomize position and size
     geometry_msgs::Point _point;
     _point.z = 0.5;
     double _radius;
-    while (true)
-    {
+    while (true) {
       // obstacle should keep away from safe areas
       _point.x = _x_distribution(_e);
       _point.y = _y_distribution(_e);
@@ -156,8 +155,7 @@ bool Simulator::ResetMapAndDisplay()
   _mk_msg.color.a = 0.9;
   _mk_msg.action = visualization_msgs::Marker::ADD;
   _mk_msg.scale.z = 1;
-  for (int32_t i = 0; i < _num_obs; i++)
-  {
+  for (int32_t i = 0; i < _num_obs; i++) {
     _mk_msg.pose.position = pos_obs_[i];
     _mk_msg.id = i;
     _mk_msg.scale.x = radius_obs_[i] * 2;
@@ -200,21 +198,54 @@ bool Simulator::UpdateLaserScan() {
   state_.scan.ranges.clear();
   state_.scan.intensities.clear();
   state_.scan.time_increment = 0.01;
+  //
+  double _angle_base = tf2::getYaw(state_.pose.orientation);
+  _angle_base += M_PI_2 + angle_min_;
   for (int32_t i = 0; i < num_laser_; i++) {
-    state_.scan.ranges.push_back(range_max_-0.1);
+    // update range
+    double _angle = _angle_base + i * state_.scan.angle_increment;
+    geometry_msgs::Point _outpoint;
+    _outpoint.x = 0;
+    _outpoint.y = range_max_;
+    Rotate(_angle, _outpoint);
+    Translate(state_.pose.position, _outpoint);
+    double _range_distance = DBL_MAX;
+    geometry_msgs::Point _cross_point;
+    for (int32_t i = 0; i < pos_obs_.size(); i++) {
+      if (LineCircleShortestCrossPoint(pos_obs_[i], radius_obs_[i],
+                                       state_.pose.position, _outpoint,
+                                       _cross_point)) {
+        //
+        double _range_distance_t = Distance(state_.pose.position, _cross_point);
+        if (_range_distance_t < _range_distance) {
+          _range_distance = _range_distance_t;
+        }
+        // _range_distance = range_max_ / 2;
+        std::cout << "a" << std::endl;
+        break;
+      }
+    }
+    if (_range_distance > range_max_) {
+      _range_distance = range_max_ - 0.1;
+    }
+    if (_range_distance < range_min_) {
+      _range_distance = range_min_;
+    }
+    state_.scan.ranges.push_back(_range_distance);
+    // update intensity
     state_.scan.intensities.push_back(99999);
   }
   return true;
 }
-bool Simulator::SetUAVPose(uav_simulator::SetUavPose::Request &req, uav_simulator::SetUavPose::Response &resp)
-{
+bool Simulator::SetUAVPose(uav_simulator::SetUavPose::Request &req,
+                           uav_simulator::SetUavPose::Response &resp) {
   //
   state_.pose = req.pose;
   resp.success = true;
   return true;
 }
-bool Simulator::Step(uav_simulator::Step::Request &req, uav_simulator::Step::Response &resp)
-{
+bool Simulator::Step(uav_simulator::Step::Request &req,
+                     uav_simulator::Step::Response &resp) {
   //
   Intergrator(state_, req.control, req.step_time);
   resp.state = state_;
@@ -223,8 +254,8 @@ bool Simulator::Step(uav_simulator::Step::Request &req, uav_simulator::Step::Res
   resp.success = true;
   return true;
 }
-void Simulator::UpdateModel(uav_simulator::State &state, const uav_simulator::Control control)
-{
+void Simulator::UpdateModel(uav_simulator::State &state,
+                            const uav_simulator::Control control) {
   //
   double _yaw, _pitch, _roll;
   tf2::getEulerYPR(state.pose.orientation, _yaw, _pitch, _roll);
@@ -242,13 +273,13 @@ void Simulator::UpdateModel(uav_simulator::State &state, const uav_simulator::Co
   state.pose.orientation.z = _qtn.z();
   state.pose.orientation.w = _qtn.w();
 }
-void Simulator::Intergrator(uav_simulator::State &state, const uav_simulator::Control control, const double duration)
-{
+void Simulator::Intergrator(uav_simulator::State &state,
+                            const uav_simulator::Control control,
+                            const double duration) {
   //
   uav_simulator::Control _sub_ctr;
   double _intergrate_time = intergrate_dt_;
-  while (_intergrate_time < duration + std::numeric_limits<double>::epsilon())
-  {
+  while (_intergrate_time < duration + std::numeric_limits<double>::epsilon()) {
     _sub_ctr.linear_velocity = intergrate_dt_ * control.linear_velocity;
     _sub_ctr.yaw_rate = intergrate_dt_ * control.yaw_rate;
     UpdateModel(state, _sub_ctr);
@@ -256,77 +287,85 @@ void Simulator::Intergrator(uav_simulator::State &state, const uav_simulator::Co
     ros::Duration(intergrate_dt_).sleep();
     ros::spinOnce();
   }
-  if (_intergrate_time + std::numeric_limits<double>::epsilon() > duration)
-  {
-    _sub_ctr.linear_velocity = (_intergrate_time - duration) * control.linear_velocity;
+  if (_intergrate_time + std::numeric_limits<double>::epsilon() > duration) {
+    _sub_ctr.linear_velocity =
+        (_intergrate_time - duration) * control.linear_velocity;
     _sub_ctr.yaw_rate = (_intergrate_time - duration) * control.yaw_rate;
     UpdateModel(state, _sub_ctr);
     ros::Duration(_intergrate_time - duration).sleep();
     ros::spinOnce();
   }
 }
-bool Simulator::IsCrash(const uav_simulator::State &state)
-{
+bool Simulator::IsCrash(const uav_simulator::State &state) {
   //
   return false;
 }
-bool Simulator::IsArrival(const uav_simulator::State &state)
-{
+bool Simulator::IsArrival(const uav_simulator::State &state) {
   //
   return false;
 }
 
 // tool function
 double Simulator::Distance(const geometry_msgs::Point &lhs,
-                           const geometry_msgs::Point &rhs)
-{
+                           const geometry_msgs::Point &rhs) {
   //
-  return sqrt((lhs.x - rhs.x) * (lhs.x - rhs.x) + (lhs.y - rhs.y) * (lhs.y - rhs.y));
+  return sqrt((lhs.x - rhs.x) * (lhs.x - rhs.x) +
+              (lhs.y - rhs.y) * (lhs.y - rhs.y));
 }
 double Simulator::Distance(const geometry_msgs::Pose &lhs,
-                           const geometry_msgs::Pose &rhs)
-{
+                           const geometry_msgs::Pose &rhs) {
   //
   return Distance(lhs.position, rhs.position);
 }
-bool Simulator::LineCircleShortestCrossPoint(const geometry_msgs::Point &center,
-                                             const double radius, geometry_msgs::Point &cur_pos,
-                                             const geometry_msgs::Point &next_pos,
-                                             geometry_msgs::Point &cross_point)
+bool Simulator::LineCircleShortestCrossPoint(
+    const geometry_msgs::Point &center, const double radius,
+    geometry_msgs::Point &cur_pos, const geometry_msgs::Point &next_pos,
+    geometry_msgs::Point &cross_point)
 {
   //
   double _line_k, _line_b;
   LineParam(cur_pos, next_pos, _line_k, _line_b);
-  double _dist;
-  PointLineDistance(center, _line_k, _line_b);
-  // 
-  if (_dist > radius + std::numeric_limits<double>::epsilon()) {
-    // 
+  double _dist = PointLineDistance(center, _line_k, _line_b);
+  //
+  if (_dist > radius + std::numeric_limits<double>::epsilon())
+  {
+    //
     return false;
   }
-  else {
+  else
+  {
     //
     double _A = 1 + _line_k * _line_k;
     double _B = 2 * _line_k * (_line_b - center.y) - 2 * center.x;
-    double _C = pow(center.x, 2) + pow(_line_b - center.y, 2) - pow(radius, 2); 
-    if (fabs(_dist - radius) < std::numeric_limits<double>::epsilon()) {
-      cross_point.x = - _B / (2 * _A);
+    double _C = pow(center.x, 2) + pow(_line_b - center.y, 2) - pow(radius, 2);
+    if (fabs(_dist - radius) < std::numeric_limits<double>::epsilon())
+    {
+      cross_point.x = -_B / (2 * _A);
       cross_point.y = _line_k * cross_point.x + _line_b;
     }
-    else {
+    else
+    {
       double _x1, _x2, _y1, _y2;
       double _D = sqrt(_B * _B - 4 * _A * _C);
-      _x1 = (- _B + _D) / (2 * _A);
+      _x1 = (-_B + _D) / (2 * _A);
       _y1 = _line_k * _x1 + _line_b;
-      _x2 = (- _B - _D) / (2 * _A);
+      _x2 = (-_B - _D) / (2 * _A);
       _y2 = _line_k * _x2 + _line_b;
-      double _dist_1 = sqrt(_x1 * _x1 + _y1 * _y1);
-      double _dist_2 = sqrt(_x2 * _x2 + _y2 * _y2);
-      if (_dist_1 < _dist_2) {
+      geometry_msgs::Point _cross_point_1;
+      _cross_point_1.x = _x1;
+      _cross_point_1.y = _y1;
+      geometry_msgs::Point _cross_point_2;
+      _cross_point_2.x = _x2;
+      _cross_point_2.y = _y2;
+      double _dist_1 = Distance(_cross_point_1, cur_pos);
+      double _dist_2 = Distance(_cross_point_2, cur_pos);
+      if (_dist_1 < _dist_2)
+      {
         cross_point.x = _x1;
         cross_point.y = _y1;
       }
-      else {
+      else
+      {
         cross_point.x = _x2;
         cross_point.y = _y2;
       }
@@ -334,20 +373,20 @@ bool Simulator::LineCircleShortestCrossPoint(const geometry_msgs::Point &center,
   }
   return true;
 }
-double Simulator::PointLineDistance(const geometry_msgs::Point &point, const double line_k, const double line_b)
-{
+double Simulator::PointLineDistance(const geometry_msgs::Point &point,
+                                    const double line_k, const double line_b) {
   //
-  return fabs(line_k * point.x - point.y + line_b) / sqrt(1.0 + line_k * line_k);
+  return fabs(line_k * point.x - point.y + line_b) /
+         sqrt(1.0 + line_k * line_k);
 }
-bool Simulator::Translate(const geometry_msgs::Point &tr_point, geometry_msgs::Point &point)
-{
+bool Simulator::Translate(const geometry_msgs::Point &tr_point,
+                          geometry_msgs::Point &point) {
   //
   point.x += tr_point.x;
   point.y += tr_point.y;
   return true;
 }
-bool Simulator::Rotate(const double theta, geometry_msgs::Point &point)
-{
+bool Simulator::Rotate(const double theta, geometry_msgs::Point &point) {
   //
   double _dist = sqrt(point.x * point.x + point.y + point.y);
   double _theta_ori = atan2(point.y, point.x);
@@ -359,25 +398,20 @@ bool Simulator::Rotate(const double theta, geometry_msgs::Point &point)
 
 bool Simulator::LineParam(const geometry_msgs::Point &point_a,
                           const geometry_msgs::Point &point_b, double &line_k,
-                          double &line_b)
-{
+                          double &line_b) {
   //
   double _dx = point_a.x - point_b.x;
   double _dy = point_a.y - point_b.y;
-  if (fabs(_dx) < 10e-7)
-  { // avoid zero divide error
+  if (fabs(_dx) < 10e-7) {  // avoid zero divide error
     line_k = 10e17;
-  }
-  else
-  {
+  } else {
     line_k = std::max(-10e17, std::min(10e17, _dy / _dx));
   }
   line_b = point_a.y - line_k * point_a.x;
   return true;
 }
 
-int32_t main(int32_t argc, char *argv[])
-{
+int32_t main(int32_t argc, char *argv[]) {
   srand(time(NULL));
   setlocale(LC_ALL, "");
   ros::init(argc, argv, "simulator");

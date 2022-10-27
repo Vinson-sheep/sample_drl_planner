@@ -60,6 +60,7 @@ private:
   vector<double> radius_obs_;
   geometry_msgs::Point goal_;
   geometry_msgs::Point start_;
+  int32_t goal_id_;
 
   // Publisher & tf
   ros::Publisher grid_map_publisher_;
