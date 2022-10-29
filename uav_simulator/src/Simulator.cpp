@@ -205,10 +205,14 @@ bool Simulator::UpdateLaserScan() {
     // update range
     double _angle = _angle_base + i * state_.scan.angle_increment;
     geometry_msgs::Point _outpoint;
-    _outpoint.x = 0;
-    _outpoint.y = range_max_;
+    _outpoint.x = range_max_;
+    _outpoint.y = 0;
     Rotate(_angle, _outpoint);
+    // if (i == 0) std::cout << "a: " << _outpoint.x << ", " << _outpoint.y <<
+    // std::endl;
     Translate(state_.pose.position, _outpoint);
+    // if (i == 0) std::cout << "b: " << _outpoint.x << ", " << _outpoint.y <<
+    // std::endl;
     double _range_distance = DBL_MAX;
     geometry_msgs::Point _cross_point;
     for (int32_t i = 0; i < pos_obs_.size(); i++) {
@@ -221,7 +225,6 @@ bool Simulator::UpdateLaserScan() {
           _range_distance = _range_distance_t;
         }
         // _range_distance = range_max_ / 2;
-        std::cout << "a" << std::endl;
         break;
       }
     }
@@ -320,31 +323,24 @@ double Simulator::Distance(const geometry_msgs::Pose &lhs,
 bool Simulator::LineCircleShortestCrossPoint(
     const geometry_msgs::Point &center, const double radius,
     geometry_msgs::Point &cur_pos, const geometry_msgs::Point &next_pos,
-    geometry_msgs::Point &cross_point)
-{
+    geometry_msgs::Point &cross_point) {
   //
   double _line_k, _line_b;
   LineParam(cur_pos, next_pos, _line_k, _line_b);
   double _dist = PointLineDistance(center, _line_k, _line_b);
   //
-  if (_dist > radius + std::numeric_limits<double>::epsilon())
-  {
+  if (_dist > radius + std::numeric_limits<double>::epsilon()) {
     //
     return false;
-  }
-  else
-  {
+  } else {
     //
     double _A = 1 + _line_k * _line_k;
     double _B = 2 * _line_k * (_line_b - center.y) - 2 * center.x;
     double _C = pow(center.x, 2) + pow(_line_b - center.y, 2) - pow(radius, 2);
-    if (fabs(_dist - radius) < std::numeric_limits<double>::epsilon())
-    {
+    if (fabs(_dist - radius) < std::numeric_limits<double>::epsilon()) {
       cross_point.x = -_B / (2 * _A);
       cross_point.y = _line_k * cross_point.x + _line_b;
-    }
-    else
-    {
+    } else {
       double _x1, _x2, _y1, _y2;
       double _D = sqrt(_B * _B - 4 * _A * _C);
       _x1 = (-_B + _D) / (2 * _A);
@@ -359,16 +355,17 @@ bool Simulator::LineCircleShortestCrossPoint(
       _cross_point_2.y = _y2;
       double _dist_1 = Distance(_cross_point_1, cur_pos);
       double _dist_2 = Distance(_cross_point_2, cur_pos);
-      if (_dist_1 < _dist_2)
-      {
+      if (_dist_1 < _dist_2) {
         cross_point.x = _x1;
         cross_point.y = _y1;
-      }
-      else
-      {
+      } else {
         cross_point.x = _x2;
         cross_point.y = _y2;
       }
+    }
+    // judge if cross point is in the right direction
+    if (!HomoDirect(cur_pos, cross_point, cur_pos, next_pos)) {
+      return false;
     }
   }
   return true;
@@ -409,6 +406,18 @@ bool Simulator::LineParam(const geometry_msgs::Point &point_a,
   }
   line_b = point_a.y - line_k * point_a.x;
   return true;
+}
+
+bool Simulator::HomoDirect(const geometry_msgs::Point &line_a_1,
+                           const geometry_msgs::Point &line_a_2,
+                           const geometry_msgs::Point &line_b_1,
+                           const geometry_msgs::Point &line_b_2) {
+  //
+  double _dx_a = line_a_1.x - line_a_2.x;
+  double _dy_a = line_a_1.y - line_a_2.y;
+  double _dx_b = line_b_1.x - line_b_2.x;
+  double _dy_b = line_b_1.y - line_b_2.y;
+  return fabs(std::atan2(_dy_a, _dx_a) - std::atan2(_dy_b, _dx_b)) < 10e-5;
 }
 
 int32_t main(int32_t argc, char *argv[]) {

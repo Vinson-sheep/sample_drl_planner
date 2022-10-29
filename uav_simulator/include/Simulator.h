@@ -8,6 +8,7 @@
 #include "geometry_msgs/Pose.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "ros/ros.h"
+#include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
 #include "tf2/LinearMath/Quaternion.h"
 #include "tf2/utils.h"
@@ -19,17 +20,15 @@
 #include "uav_simulator/Step.h"
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
-#include "sensor_msgs/LaserScan.h"
 
 using std::vector;
 
-class Simulator
-{
-public:
+class Simulator {
+ public:
   Simulator();
   ~Simulator();
   //
-private:
+ private:
   // uav state
   double crash_limit_;
   double arrive_limit_;
@@ -106,13 +105,18 @@ private:
                                     geometry_msgs::Point &cur_pos,
                                     const geometry_msgs::Point &next_pos,
                                     geometry_msgs::Point &cross_point);
-  double PointLineDistance(const geometry_msgs::Point &point, const double line_k, const double line_b);
+  double PointLineDistance(const geometry_msgs::Point &point,
+                           const double line_k, const double line_b);
   bool Translate(const geometry_msgs::Point &tr_point,
                  geometry_msgs::Point &point);
   bool Rotate(const double theta, geometry_msgs::Point &point);
   bool LineParam(const geometry_msgs::Point &point_a,
                  const geometry_msgs::Point &point_b, double &line_k,
                  double &line_b);
+  bool HomoDirect(const geometry_msgs::Point &line_a_1,
+                  const geometry_msgs::Point &line_a_2,
+                  const geometry_msgs::Point &line_b_1,
+                  const geometry_msgs::Point &line_b_2);
 };
 
 #endif /* SIMULATOR_H */
