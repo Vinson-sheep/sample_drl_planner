@@ -17,7 +17,7 @@ Simulator::Simulator() {
   uav_max_yaw_rate_ = M_PI_2;
   flight_height_ = 0.5;
   state_.pose.orientation.w = 1.0;
-  intergrate_dt_ = 0.01;
+  intergrate_dt_ = 0.02;
   goal_id_ = -1;
 
   // grid map
@@ -25,7 +25,7 @@ Simulator::Simulator() {
   safe_radius_ = 0.25;
   length_x_ = 15;
   length_y_ = 15;
-  num_obs_max_ = 20;
+  num_obs_max_ = 20; 
   num_obs_min_ = 20;
   radius_obs_max_ = 2.0;
   radius_obs_min_ = 0.25;
@@ -45,7 +45,7 @@ Simulator::Simulator() {
 
   // Timer
   mainloop_timer_ =
-      _nh.createTimer(ros::Duration(0.02), &Simulator::MainLoopCB, this);
+      _nh.createTimer(ros::Duration(0.01), &Simulator::MainLoopCB, this);
 }
 
 Simulator::~Simulator() {}
@@ -125,7 +125,6 @@ bool Simulator::ResetMapAndDisplay() {
   pos_obs_.clear();
   radius_obs_.clear();
   goal_id_ = -1;
-  ros::spinOnce();
   // generate new obstacles
   std::uniform_real_distribution<double> _x_distribution(-length_x_ / 2,
                                                          length_x_ / 2);
@@ -195,31 +194,29 @@ bool Simulator::ResetMapAndDisplay() {
 }
 bool Simulator::UpdateLaserScan() {
   //
-  state_.scan.angle_max = angle_max_;
-  state_.scan.angle_min = angle_min_;
-  state_.scan.angle_increment = (angle_max_ - angle_min_) / (num_laser_ - 1);
-  state_.scan.header.frame_id = "laser_scan";
-  state_.scan.header.stamp = ros::Time::now();
-  state_.scan.range_max = range_max_;
-  state_.scan.range_min = range_min_;
-  state_.scan.ranges.clear();
-  state_.scan.intensities.clear();
-  state_.scan.time_increment = 0.01;
+  sensor_msgs::LaserScan _ls_msg;
+  _ls_msg.angle_max = angle_max_;
+  _ls_msg.angle_min = angle_min_;
+  _ls_msg.angle_increment = (angle_max_ - angle_min_) / (num_laser_ - 1);
+  _ls_msg.header.frame_id = "laser_scan";
+  _ls_msg.header.stamp = ros::Time::now();
+  _ls_msg.range_max = range_max_;
+  _ls_msg.range_min = range_min_;
+  _ls_msg.ranges.clear();
+  _ls_msg.intensities.clear();
+  _ls_msg.time_increment = 0.01 / num_laser_;
+  _ls_msg.scan_time = 0.01;
   //
   double _angle_base = tf2::getYaw(state_.pose.orientation);
   _angle_base += M_PI_2 + angle_min_;
   for (int32_t i = 0; i < num_laser_; i++) {
     // update range
-    double _angle = _angle_base + i * state_.scan.angle_increment;
+    double _angle = _angle_base + i * _ls_msg.angle_increment;
     geometry_msgs::Point _outpoint;
     _outpoint.x = range_max_;
     _outpoint.y = 0;
     Rotate(_angle, _outpoint);
-    // if (i == 0) std::cout << "a: " << _outpoint.x << ", " << _outpoint.y <<
-    // std::endl;
     Translate(state_.pose.position, _outpoint);
-    // if (i == 0) std::cout << "b: " << _outpoint.x << ", " << _outpoint.y <<
-    // std::endl;
     double _range_distance = DBL_MAX;
     geometry_msgs::Point _cross_point;
     for (int32_t i = 0; i < pos_obs_.size(); i++) {
@@ -231,7 +228,6 @@ bool Simulator::UpdateLaserScan() {
         if (_range_distance_t < _range_distance) {
           _range_distance = _range_distance_t;
         }
-        // _range_distance = range_max_ / 2;
         break;
       }
     }
@@ -241,10 +237,11 @@ bool Simulator::UpdateLaserScan() {
     if (_range_distance < range_min_) {
       _range_distance = range_min_;
     }
-    state_.scan.ranges.push_back(_range_distance);
+    _ls_msg.ranges.push_back(_range_distance);
     // update intensity
-    state_.scan.intensities.push_back(99999);
+    _ls_msg.intensities.push_back(99999);
   }
+  state_.scan = _ls_msg;
   return true;
 }
 bool Simulator::SetUAVPose(uav_simulator::SetUavPose::Request &req,
