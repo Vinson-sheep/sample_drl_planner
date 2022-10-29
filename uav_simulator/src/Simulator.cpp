@@ -18,6 +18,7 @@ Simulator::Simulator() {
   flight_height_ = 0.5;
   state_.pose.orientation.w = 1.0;
   intergrate_dt_ = 0.01;
+  goal_id_ = -1;
 
   // grid map
   target_distance_ = 8.0;
@@ -108,18 +109,22 @@ bool Simulator::ResetMapAndDisplay() {
   _mk_msg.pose.orientation.w = 1;
   // get obstacle number
   int32_t _num_obs = num_obs_min_ + rand() % (num_obs_max_ - num_obs_min_ + 1);
-  std::cout << _num_obs << std::endl;
   // delete original obstalces
   visualization_msgs::MarkerArray _mk_arr_msg;
-  for (int32_t i = 0; i < pos_obs_.size() + 1; i++) {  // +1: delele target
+  _mk_msg.action = visualization_msgs::Marker::DELETE;
+  for (int32_t i = 0; i < pos_obs_.size(); i++) {
     _mk_msg.id = i;
-    _mk_msg.action = visualization_msgs::Marker::DELETE;
+    _mk_arr_msg.markers.push_back(_mk_msg);
+  }
+  if (goal_id_ != -1) {
+    _mk_msg.id = goal_id_;
     _mk_arr_msg.markers.push_back(_mk_msg);
   }
   grid_map_publisher_.publish(_mk_arr_msg);
   _mk_arr_msg.markers.clear();
   pos_obs_.clear();
   radius_obs_.clear();
+  goal_id_ = -1;
   ros::spinOnce();
   // generate new obstacles
   std::uniform_real_distribution<double> _x_distribution(-length_x_ / 2,
@@ -172,6 +177,8 @@ bool Simulator::ResetMapAndDisplay() {
   _mk_msg.scale.y = 0.2;
   _mk_msg.scale.z = 0.2;
   _mk_msg.pose.position = goal_;
+  _mk_msg.id = _num_obs + 1;
+  goal_id_ = _num_obs + 1;
   _mk_arr_msg.markers.push_back(_mk_msg);
   // reset uav pose
   state_.pose.position = start_;
