@@ -228,7 +228,6 @@ bool Simulator::UpdateLaserScan() {
         if (_range_distance_t < _range_distance) {
           _range_distance = _range_distance_t;
         }
-        break;
       }
     }
     if (_range_distance > range_max_) {
@@ -305,11 +304,16 @@ void Simulator::Intergrator(uav_simulator::State &state,
 }
 bool Simulator::IsCrash(const uav_simulator::State &state) {
   //
+  for (int32_t i = 0; i < pos_obs_.size(); i++) {
+    if (Distance(pos_obs_[i], state_.pose.position) < radius_obs_[i] + crash_limit_) {
+      return true;
+    }
+  }
   return false;
 }
 bool Simulator::IsArrival(const uav_simulator::State &state) {
   //
-  return false;
+  return Distance(state_.pose.position, goal_) < arrive_limit_;
 }
 
 // tool function
