@@ -19,6 +19,7 @@ Simulator::Simulator() {
   state_.pose.orientation.w = 1.0;
   intergrate_dt_ = 0.02;
   goal_id_ = -1;
+  state_update_factor_ = 0.1;
 
   // grid map
   target_distance_ = 8.0;
@@ -261,17 +262,22 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
   return true;
 }
 void Simulator::UpdateModel(uav_simulator::State &state,
-                            const uav_simulator::Control control) {
+                            const uav_simulator::Control control, const double duration) {
   //
   double _yaw, _pitch, _roll;
   tf2::getEulerYPR(state.pose.orientation, _yaw, _pitch, _roll);
+  // update velicity
+  double _alpha = duration / intergrate_dt_ * state_update_factor_;
+  double _cur_linear_velocity = std::sqrt(std::pow(state.twist.linear.x, 2.0) + std::pow(state.twist.linear.y, 2.0));
+  _cur_linear_velocity = (1 - _alpha) * _cur_linear_velocity + _alpha * control.linear_velocity;
+  state.twist.linear.x = _cur_linear_velocity * std::cos(_yaw + M_PI_2);
+  state.twist.linear.y = _cur_linear_velocity * std::sin(_yaw + M_PI_2);
+  state.twist.angular.z = (1 - _alpha) * state.twist.angular.z + _alpha * control.yaw_rate;
   // modify position
-  double _dx = control.linear_velocity * cos(_yaw + M_PI_2);
-  double _dy = control.linear_velocity * sin(_yaw + M_PI_2);
-  state.pose.position.x += _dx;
-  state.pose.position.y += _dy;
+  state.pose.position.x += state.twist.linear.x * duration;
+  state.pose.position.y += state.twist.linear.y * duration;
   // modify orientation
-  _yaw += control.yaw_rate;
+  _yaw += state.twist.angular.z * duration;
   tf2::Quaternion _qtn;
   _qtn.setRPY(_roll, _pitch, _yaw);
   state.pose.orientation.x = _qtn.x();
@@ -283,21 +289,15 @@ void Simulator::Intergrator(uav_simulator::State &state,
                             const uav_simulator::Control control,
                             const double duration) {
   //
-  uav_simulator::Control _sub_ctr;
   double _intergrate_time = intergrate_dt_;
   while (_intergrate_time < duration + std::numeric_limits<double>::epsilon()) {
-    _sub_ctr.linear_velocity = intergrate_dt_ * control.linear_velocity;
-    _sub_ctr.yaw_rate = intergrate_dt_ * control.yaw_rate;
-    UpdateModel(state, _sub_ctr);
+    UpdateModel(state, control, intergrate_dt_);
     _intergrate_time += intergrate_dt_;
     ros::Duration(intergrate_dt_).sleep();
     ros::spinOnce();
   }
   if (_intergrate_time + std::numeric_limits<double>::epsilon() > duration) {
-    _sub_ctr.linear_velocity =
-        (_intergrate_time - duration) * control.linear_velocity;
-    _sub_ctr.yaw_rate = (_intergrate_time - duration) * control.yaw_rate;
-    UpdateModel(state, _sub_ctr);
+    UpdateModel(state, control, _intergrate_time - duration);
     ros::Duration(_intergrate_time - duration).sleep();
     ros::spinOnce();
   }

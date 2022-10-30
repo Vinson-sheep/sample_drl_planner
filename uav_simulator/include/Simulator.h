@@ -45,6 +45,7 @@ class Simulator {
   double flight_height_;
   uav_simulator::State state_;
   double intergrate_dt_;
+  double state_update_factor_;
 
   // grid map
   double target_distance_;
@@ -89,7 +90,7 @@ class Simulator {
 
   // model
   void UpdateModel(uav_simulator::State &state,
-                   const uav_simulator::Control control);
+                   const uav_simulator::Control control, const double duration);
   void Intergrator(uav_simulator::State &state,
                    const uav_simulator::Control control, const double duration);
   bool IsCrash(const uav_simulator::State &state);
