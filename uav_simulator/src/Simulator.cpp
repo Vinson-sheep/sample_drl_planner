@@ -1,5 +1,5 @@
 #include "Simulator.h"
-#include "angles.h"
+#include "angles/angles.h"
 
 Simulator::Simulator() {
   ros::NodeHandle _nh;
