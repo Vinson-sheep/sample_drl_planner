@@ -26,7 +26,7 @@ Simulator::Simulator() {
   safe_radius_ = 0.25;
   length_x_ = 15;
   length_y_ = 15;
-  num_obs_max_ = 20; 
+  num_obs_max_ = 20;
   num_obs_min_ = 20;
   radius_obs_max_ = 2.0;
   radius_obs_min_ = 0.25;
@@ -67,6 +67,13 @@ void Simulator::MainLoopCB(const ros::TimerEvent &event) {
   _tf_msg.transform.rotation.z = state_.pose.orientation.z;
   _tf_msg.transform.rotation.w = state_.pose.orientation.w;
   broadcaster_.sendTransform(_tf_msg);
+
+  // update state
+  state_.target_distance =
+      std::sqrt(pow(state_.pose.position.x - goal_.x, 2.0) +
+                pow(state_.pose.position.y - goal_.y, 2.0));
+  state_.target_angle = std::atan2(state_.pose.position.y - goal_.y,
+                                   state_.pose.position.x - goal_.x);
 
   // send laser scan
   UpdateLaserScan();
@@ -262,17 +269,21 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
   return true;
 }
 void Simulator::UpdateModel(uav_simulator::State &state,
-                            const uav_simulator::Control control, const double duration) {
+                            const uav_simulator::Control control,
+                            const double duration) {
   //
   double _yaw, _pitch, _roll;
   tf2::getEulerYPR(state.pose.orientation, _yaw, _pitch, _roll);
   // update velicity
   double _alpha = duration / intergrate_dt_ * state_update_factor_;
-  double _cur_linear_velocity = std::sqrt(std::pow(state.twist.linear.x, 2.0) + std::pow(state.twist.linear.y, 2.0));
-  _cur_linear_velocity = (1 - _alpha) * _cur_linear_velocity + _alpha * control.linear_velocity;
+  double _cur_linear_velocity = std::sqrt(std::pow(state.twist.linear.x, 2.0) +
+                                          std::pow(state.twist.linear.y, 2.0));
+  _cur_linear_velocity =
+      (1 - _alpha) * _cur_linear_velocity + _alpha * control.linear_velocity;
   state.twist.linear.x = _cur_linear_velocity * std::cos(_yaw + M_PI_2);
   state.twist.linear.y = _cur_linear_velocity * std::sin(_yaw + M_PI_2);
-  state.twist.angular.z = (1 - _alpha) * state.twist.angular.z + _alpha * control.yaw_rate;
+  state.twist.angular.z =
+      (1 - _alpha) * state.twist.angular.z + _alpha * control.yaw_rate;
   // modify position
   state.pose.position.x += state.twist.linear.x * duration;
   state.pose.position.y += state.twist.linear.y * duration;
@@ -305,7 +316,8 @@ void Simulator::Intergrator(uav_simulator::State &state,
 bool Simulator::IsCrash(const uav_simulator::State &state) {
   //
   for (int32_t i = 0; i < pos_obs_.size(); i++) {
-    if (Distance(pos_obs_[i], state_.pose.position) < radius_obs_[i] + crash_limit_) {
+    if (Distance(pos_obs_[i], state_.pose.position) <
+        radius_obs_[i] + crash_limit_) {
       return true;
     }
   }

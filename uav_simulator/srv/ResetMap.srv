@@ -1,3 +1,4 @@
 uav_simulator/MapParam param
 ---
+uav_simulator/State state
 bool success
