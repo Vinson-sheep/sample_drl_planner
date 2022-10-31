@@ -6,3 +6,6 @@ int32 num_obs_max
 int32 num_obs_min
 float32 radius_obs_max
 float32 radius_obs_min
+float32 crash_limit
+float32 arrive_limit
+float32 intergrate_dt

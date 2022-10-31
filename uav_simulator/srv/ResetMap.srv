@@ -1,4 +1,5 @@
 uav_simulator/MapParam param
+uav_simulator/SensorParam sparam
 ---
 uav_simulator/State state
 bool success

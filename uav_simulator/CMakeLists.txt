@@ -60,6 +60,7 @@ add_message_files(
   Control.msg
   State.msg
   MapParam.msg
+  SensorParam.msg
 )
 
 ## Generate services in the 'srv' folder

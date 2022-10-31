@@ -14,8 +14,8 @@ Simulator::Simulator() {
   range_min_ = 0.15;
   num_laser_ = 40;
   uav_radius_ = 0.1;
-  uav_max_linear_velocity_ = 1.0;
-  uav_max_yaw_rate_ = M_PI_2;
+  uav_max_linear_velocity_ = 1.0; // abandon
+  uav_max_yaw_rate_ = M_PI_2; // abandon
   flight_height_ = 0.5;
   state_.pose.orientation.w = 1.0;
   intergrate_dt_ = 0.02;
@@ -87,6 +87,14 @@ bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req,
                          uav_simulator::ResetMap::Response &resp) {
   //
   // update parameters
+  crash_limit_ = req.param.crash_limit;
+  arrive_limit_ = req.param.arrive_limit;
+  angle_max_ = req.sparam.angle_max;
+  angle_min_ = req.sparam.angle_min;
+  range_max_ = req.sparam.range_max;
+  range_min_ = req.sparam.range_min;
+  num_laser_ = req.sparam.num_laser;
+  intergrate_dt_ = req.param.intergrate_dt;
   target_distance_ = req.param.target_distance;
   safe_radius_ = req.param.safe_radius;
   length_x_ = req.param.length_x;
