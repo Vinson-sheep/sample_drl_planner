@@ -105,6 +105,9 @@ bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req,
 
   ResetMapAndDisplay();
 
+  ros::Duration(0.5).sleep();
+
+  resp.state = state_;
   resp.success = true;
 
   return true;
