@@ -27,7 +27,7 @@ class PrioritizedReplayBuffer:
         self.done_buffer =torch.FloatTensor([]).to(device)
         self.priority_buffer = torch.FloatTensor([]).to(device)
 
-        self.url = os.path.dirname(os.path.realpath(__file__)) + '/../data/' + self.policy + '_buffer.pth'
+        self.url = os.path.dirname(os.path.realpath(__file__)) + '/data/' + self.policy + '_buffer.pth'
 
 
     def add(self, transition, priority):
@@ -62,6 +62,9 @@ class PrioritizedReplayBuffer:
 
     def state_mean_std(self):
         return self.cur_state_buffer.mean(dim=0), self.cur_state_buffer.std(dim=0)
+
+    def reward_std(self):
+        return self.reward_buffer.std()
 
     def sample(self):
         """

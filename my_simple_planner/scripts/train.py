@@ -14,38 +14,46 @@ from tensorboardX import SummaryWriter
 import SAC
 
 # Train param
-load_progress = False
-load_buffer_flag = False
-load_actor_flag = False
-load_critic_flag = False
-load_log_alpha_flag = False
-load_optim_flag = False
+kLoadPorgress = False
+kLoadBuffer = False
+kLoadActor = False
+kLoadCritic = False
+kLoadLogAlpha = False
+kLoadOptim = False
 
 fix_actor_flag = False
 use_priority = True
 
 # DRL param
 policy = "SAC"
-state_dim = 41
+state_dim = 44
 action_dim = 2
 max_episode = 500
 max_step_size = 300
-init_episode = 50
+init_episode = 5
 K = 1
-
 # uav param
-kMaxLinearVelicity = 3.0
+kMaxLinearVelicity = 1.0
 kMaxAngularVeclity = 1.0
-
+kStepTime = 0.2
 # map param
 kTargetDistance = 8
-kSafeRadius = 8
+kSafeRadius = 0.25
 kLengthX = 15
 kLengthY = 15
-kNumObsMax = 20
+kNumObsMax = 10
 kNUmObsMin = 5
 kRadiusObsMax = 2.0
 kRadiusObsMin = 0.25
+kCrashLimit = 0.25
+kArriveLimit = 0.25
+KIntegrateDt = 0.02
+# sensor param
+kRangeMax = 5.0
+kRangeMin = 0.15
+kAngleMax = 2 * math.pi / 3
+kAngleMin = -2 * math.pi / 3
+kNumLaser = 40
 
 # variable
 episode_rewards = np.array([])
@@ -60,17 +68,15 @@ agent = None
 url = os.path.dirname(os.path.realpath(__file__)) + '/data/'
 writer = SummaryWriter(url + '../../log')
 
-step_time = 0.2
-
 # initialize agent
 kwargs = {
     'state_dim': state_dim,
     'action_dim': action_dim,
-    'load_buffer_flag': load_buffer_flag,
-    'load_actor_flag': load_actor_flag,
-    'load_critic_flag': load_critic_flag,
-    'load_log_alpha_flag': load_log_alpha_flag,
-    'load_optim_flag': load_optim_flag,
+    'load_buffer_flag': kLoadBuffer,
+    'load_actor_flag': kLoadActor,
+    'load_critic_flag': kLoadCritic,
+    'load_log_alpha_flag': kLoadLogAlpha,
+    'load_optim_flag': kLoadOptim,
     'fix_actor_flag': fix_actor_flag,
     'use_priority': use_priority
 }
@@ -189,8 +195,6 @@ def GetStateVector(state):
     return np.array(_result)
 
 def GetReward(cur_state, next_state, dt, step_count, is_arrival, is_crash):
-    cur_state = State()
-    next_state = State()
     # distance reward
     _distance_reward = (cur_state.target_distance - next_state.target_distance)*(5 / dt)*1.6*7 
     # arrival reward
@@ -198,19 +202,25 @@ def GetReward(cur_state, next_state, dt, step_count, is_arrival, is_crash):
     if (is_arrival): _arrival_reward = 0
     # crash reward
     _crash_reward = 0
-    if (is_crash): _crash_reward = -100
+    # if (is_crash): _crash_reward = -100
     # laser reward
     _ranges = (np.array(next_state.scan.ranges) - next_state.scan.range_min) / (next_state.scan.range_max - next_state.scan.range_min)
-    _ranges = -20 * np.math.exp(-_ranges / 0.1)
+    _ranges = -20 * np.exp(-_ranges / 0.1)
     _laser_reward = max(np.sum(_ranges), -100)    
     # step reward
     _step_reward = -step_count * 0.04
     # total reward
     _total_reward = _distance_reward + _arrival_reward + _crash_reward + _laser_reward + _step_reward
 
-    # TODO
+    _reward_msg = Reward()
+    _reward_msg.distance_reward = _distance_reward
+    _reward_msg.arrive_reward = _arrival_reward
+    _reward_msg.crash_reward = _crash_reward
+    _reward_msg.laser_reward = _laser_reward
+    _reward_msg.step_punish_reward = _step_reward
+    _reward_msg.total_reward = _total_reward
 
-    return 0
+    return _reward_msg
 
 if __name__ == '__main__':
 
@@ -225,11 +235,15 @@ if __name__ == '__main__':
     _control_publisher = rospy.Publisher("control", Control, queue_size=1)
     _state_vector_publisher = rospy.Publisher("state_vector", StateVector, queue_size=1)
 
+    print("Wait for /reset_map service.")
+
     # wait for service
-    _reset_map_client.wait_for_service();
+    _reset_map_client.wait_for_service()
+
+    print("/reset_map service is available.")
 
     # load data if true
-    if load_progress: loadData()
+    if kLoadPorgress: loadData()
 
     episode_begin = episode_rewards.size
 
@@ -241,18 +255,29 @@ if __name__ == '__main__':
         print("=====================================")
 
         # reset world
-        req = ResetMapRequest()
-        req.param.target_distance = kTargetDistance
-        req.param.safe_radius = kSafeRadius
-        req.param.length_x = kLengthX
-        req.param.length_y = kLengthY
-        req.param.num_obs_max = kNumObsMax
-        req.param.num_obs_min = kNUmObsMin
-        req.param.radius_obs_max = kRadiusObsMax
-        req.param.radius_obs_min = kRadiusObsMin
-        resp = _reset_map_client.call(req)
+        _reset_map_req = ResetMapRequest()
 
-        s0 = GetStateVector(resp.state)
+        _reset_map_req.sparam.angle_max = kAngleMax
+        _reset_map_req.sparam.angle_min = kAngleMin
+        _reset_map_req.sparam.num_laser = kNumLaser
+        _reset_map_req.sparam.range_max = kRangeMax
+        _reset_map_req.sparam.range_min = kRangeMin
+
+        _reset_map_req.param.arrive_limit = kArriveLimit
+        _reset_map_req.param.crash_limit = kCrashLimit
+        _reset_map_req.param.intergrate_dt = KIntegrateDt
+        _reset_map_req.param.target_distance = kTargetDistance
+        _reset_map_req.param.safe_radius = kSafeRadius
+        _reset_map_req.param.length_x = kLengthX
+        _reset_map_req.param.length_y = kLengthY
+        _reset_map_req.param.num_obs_max = kNumObsMax
+        _reset_map_req.param.num_obs_min = kNUmObsMin
+        _reset_map_req.param.radius_obs_max = kRadiusObsMax
+        _reset_map_req.param.radius_obs_min = kRadiusObsMin
+        resp = _reset_map_client.call(_reset_map_req)
+
+        _s0 = resp.state
+        _s0_vector = GetStateVector(_s0)
 
         episode_reward = 0
         episode_begin_time = rospy.Time.now()
@@ -262,17 +287,17 @@ if __name__ == '__main__':
             step_begin_time = rospy.Time.now()
 
             # choose action
-            a0 = agent.act(s0)
+            _a0_vector = agent.act(_s0_vector)
 
             # DEBUG
             _control_msg = Control()
-            _control_msg.linear_velocity = a0[0]
-            _control_msg.yaw_rate = a0[1]
+            _control_msg.linear_velocity = (_a0_vector[0] + 1) / 2 * kMaxLinearVelicity
+            _control_msg.yaw_rate = _a0_vector[1] * kMaxAngularVeclity
             _control_publisher.publish(_control_msg)
 
             _state_vector_msg = StateVector()
             _state_vector_msg.header.stamp = rospy.Time.now()
-            _state_vector_msg.data = list(s0)
+            _state_vector_msg.data = list(_s0_vector)
             _state_vector_publisher.publish(_state_vector_msg)
 
             # agent learn
@@ -282,44 +307,53 @@ if __name__ == '__main__':
             learnThread().start()
 
             # step
-            _step_client.call(_control_msg)
+            _step_req = StepRequest()
+            _step_req.control = _control_msg
+            _step_req.step_time = kStepTime
+            _step_resp = _step_client.call(_step_req)
 
-            # s1, r1, done = env.step(step_time, pt.velocity.x, 0, pt.yaw_rate)        
+            _s1 = _step_resp.state
+            _s1_vector = GetStateVector(_s1)  
 
-    #         # DEBUG
-    #         msg = State()
-    #         msg.header.stamp = rospy.Time.now()
-    #         msg.cur_state = s0
-    #         msg.next_state = s1
-    #         statePub.publish(msg)
+            _is_crash = _step_resp.is_crash
+            _is_arrive = _step_resp.is_arrive
 
-    #         # save transition
-    #         agent.put(s0, a0, r1, s1, done)
+            _r1_msg = GetReward(_s0, _s1, kStepTime, step, _is_arrive, _is_crash)
+            _reward_publisher.publish(_r1_msg)
+            _r1 =  _r1_msg.total_reward
 
-    #         # plot and save
-    #         step_rewards = np.append(step_rewards, r1)
-    #         writer.add_scalar("Performance/step_reward", r1, global_step=step_rewards.size-1)  
-    #         writer.add_scalar("DEBUG/step_time", (rospy.Time.now() - step_begin_time).to_sec(), global_step=step_rewards.size-1)  
+            _done = (_is_arrive or _is_crash)
 
-    #         # other
-    #         epsilon = max(epsilon_decay*epsilon, 0.20)
-    #         episode_reward += r1
-    #         s0 = s1
+            # save transition
+            agent.put(_s0_vector, _a0_vector, _r1, _s1_vector, _done)
 
-    #         if done: break
-    #         if rospy.is_shutdown(): break
+            # plot and save
+            step_rewards = np.append(step_rewards, _r1)
+            writer.add_scalar("Performance/step_reward", _r1, global_step=step_rewards.size-1)  
+            writer.add_scalar("DEBUG/step_time", (rospy.Time.now() - step_begin_time).to_sec(), global_step=step_rewards.size-1)  
 
-    #     episode_time = (rospy.Time.now() - episode_begin_time).to_sec()
-    #     episode_rewards = np.append(episode_rewards, episode_reward)
-    #     episode_times = np.append(episode_times, episode_time)
-    #     writer.add_scalar("Performance/episode_reward", episode_reward, global_step=episode_rewards.size-1)  
-    #     writer.add_scalar("Performance/episode_time", episode_time, global_step=episode_times.size-1)  
+            # other
+            episode_reward += _r1
+            _s0 = _s1
+            _s0_vector = _s1_vector
 
-    #     if policy == "DDPG" or policy == "TD3":
-    #         print("epsilon = %f" % (epsilon))
+            if _done: break
+            if rospy.is_shutdown(): break
 
-    #     if rospy.is_shutdown(): break
+            # if uav is out of range
+            if (_s0.pose.position.x < -kLengthX/2 or _s0.pose.position.x > kLengthX/2):
+                break
+            if (_s0.pose.position.y < -kLengthY/2 or _s0.pose.position.y > kLengthY/2):
+                break
 
-    #     saveThread().start()
+        episode_time = (rospy.Time.now() - episode_begin_time).to_sec()
+        episode_rewards = np.append(episode_rewards, episode_reward)
+        episode_times = np.append(episode_times, episode_time)
+        writer.add_scalar("Performance/episode_reward", episode_reward, global_step=episode_rewards.size-1)  
+        writer.add_scalar("Performance/episode_time", episode_time, global_step=episode_times.size-1)  
+
+        if rospy.is_shutdown(): break
+
+        saveThread().start()
 
     rospy.spin()

@@ -21,7 +21,7 @@ Original paper:
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # parameters
-state_dim = 41
+state_dim = 44
 action_dim = 2
 tau = 0.01
 actor_lr = 3e-4
@@ -185,8 +185,8 @@ class SAC:
 
         # state = (state - self.buffer.state_mean())/(self.buffer.state_std() + 1e-7)
         # next_state = (next_state - self.buffer.state_mean())/(self.buffer.state_std() + 1e-6)
-        # reward = reward / (self.buffer.reward_std() + 1e-6)
-
+        # print("reward_std", self.buffer.reward_std())
+        reward = reward / (self.buffer.reward_std() + 1e-6)
 
         # alpha
 
