@@ -211,6 +211,19 @@ bool Simulator::ResetMapAndDisplay() {
   state_.pose.orientation.y = _qtn.y();
   state_.pose.orientation.z = _qtn.z();
   state_.pose.orientation.w = _qtn.w();
+  // update state
+  state_.target_distance =
+      std::sqrt(pow(state_.pose.position.x - goal_.x, 2.0) +
+                pow(state_.pose.position.y - goal_.y, 2.0));
+  double _angle_uav_target = std::atan2(state_.pose.position.y - goal_.y,
+                                   state_.pose.position.x - goal_.x);
+  double _angle_uav = tf2::getYaw(state_.pose.orientation);
+  state_.target_angle = angles::shortest_angular_distance(_angle_uav, _angle_uav_target);
+  // send laser scan
+  UpdateLaserScan();
+  laser_scan_publisher_.publish(state_.scan);
+
+
   // publish
   grid_map_publisher_.publish(_mk_arr_msg);
 }
@@ -334,6 +347,7 @@ void Simulator::Intergrator(uav_simulator::State &state,
     _intergrate_time += intergrate_dt_;
     ros::Duration(intergrate_dt_).sleep();
     ros::spinOnce();
+    if (IsCrash(state) || IsArrival(state)) break;
   }
   if (_intergrate_time + std::numeric_limits<double>::epsilon() > duration) {
     UpdateModel(state, control, _intergrate_time - duration);
