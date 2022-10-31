@@ -277,6 +277,20 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
   //
   Intergrator(state_, req.control, req.step_time);
   resp.state = state_;
+  // update state
+  state_.target_distance =
+      std::sqrt(pow(state_.pose.position.x - goal_.x, 2.0) +
+                pow(state_.pose.position.y - goal_.y, 2.0));
+  double _angle_uav_target = std::atan2(state_.pose.position.y - goal_.y,
+                                   state_.pose.position.x - goal_.x);
+  double _angle_uav = tf2::getYaw(state_.pose.orientation);
+  state_.target_angle = angles::shortest_angular_distance(_angle_uav, _angle_uav_target);
+  
+  // send laser scan
+  UpdateLaserScan();
+  laser_scan_publisher_.publish(state_.scan);
+
+
   resp.is_crash = IsCrash(state_);
   resp.is_arrive = IsArrival(state_);
   resp.success = true;
