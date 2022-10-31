@@ -202,10 +202,10 @@ def GetReward(cur_state, next_state, dt, step_count, is_arrival, is_crash):
     if (is_arrival): _arrival_reward = 0
     # crash reward
     _crash_reward = 0
-    # if (is_crash): _crash_reward = -100
+    if (is_crash): _crash_reward = -100
     # laser reward
     _ranges = (np.array(next_state.scan.ranges) - next_state.scan.range_min) / (next_state.scan.range_max - next_state.scan.range_min)
-    _ranges = -20 * np.exp(-_ranges / 0.1)
+    _ranges = -1.0* np.exp(-_ranges / 0.1)
     _laser_reward = max(np.sum(_ranges), -100)    
     # step reward
     _step_reward = -step_count * 0.04
@@ -219,6 +219,8 @@ def GetReward(cur_state, next_state, dt, step_count, is_arrival, is_crash):
     _reward_msg.laser_reward = _laser_reward
     _reward_msg.step_punish_reward = _step_reward
     _reward_msg.total_reward = _total_reward
+
+    print(_reward_msg)
 
     return _reward_msg
 
