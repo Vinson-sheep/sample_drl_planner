@@ -14,23 +14,23 @@ from tensorboardX import SummaryWriter
 import SAC
 
 # Train param
-kLoadPorgress = False
-kLoadBuffer = False
-kLoadActor = False
-kLoadCritic = False
-kLoadLogAlpha = False
-kLoadOptim = False
+kLoadPorgress = True
+kLoadBuffer = True
+kLoadActor = True
+kLoadCritic = True
+kLoadLogAlpha = True
+kLoadOptim = True
 
-fix_actor_flag = False
-use_priority = True
+kFixActorFlag = False
+kUsePriority = True
 
 # DRL param
-policy = "SAC"
-state_dim = 44
-action_dim = 2
-max_episode = 500
-max_step_size = 300
-init_episode = 5
+kPolicy = "SAC"
+kStateDim = 44
+kActionDim = 2
+kMaxEpisode = 700
+kMaxStepSize = 300
+kInitEpisode = 5
 K = 1
 # uav param
 kMaxLinearVelicity = 1.0
@@ -38,7 +38,7 @@ kMaxAngularVeclity = 1.0
 kStepTime = 0.2
 # map param
 kTargetDistance = 8
-kSafeRadius = 0.25
+kSafeRadius = 0.5
 kLengthX = 15
 kLengthY = 15
 kNumObsMax = 10
@@ -70,18 +70,18 @@ writer = SummaryWriter(url + '../../log')
 
 # initialize agent
 kwargs = {
-    'state_dim': state_dim,
-    'action_dim': action_dim,
+    'state_dim': kStateDim,
+    'action_dim': kActionDim,
     'load_buffer_flag': kLoadBuffer,
     'load_actor_flag': kLoadActor,
     'load_critic_flag': kLoadCritic,
     'load_log_alpha_flag': kLoadLogAlpha,
     'load_optim_flag': kLoadOptim,
-    'fix_actor_flag': fix_actor_flag,
-    'use_priority': use_priority
+    'fix_actor_flag': kFixActorFlag,
+    'use_priority': kUsePriority
 }
 
-if (policy == "SAC"):
+if (kPolicy == "SAC"):
     agent = SAC.SAC(**kwargs)
 
 class saveThread(threading.Thread):
@@ -100,8 +100,8 @@ class saveThread(threading.Thread):
         np.save(url + "step_rewards.npy", step_rewards)
         np.save(url + "actor_losses.npy", actor_losses)
         np.save(url + "critic_losses.npy", critic_losses)
-        if policy == "SAC": np.save(url + "alpha_losses.npy", alpha_losses)
-        if policy == "SAC": np.save(url + "alphas.npy", alphas)
+        if kPolicy == "SAC": np.save(url + "alpha_losses.npy", alpha_losses)
+        if kPolicy == "SAC": np.save(url + "alphas.npy", alphas)
         # save model
         agent.save()
         # print
@@ -132,7 +132,7 @@ class learnThread(threading.Thread):
         writer.add_scalar("Loss/actor_loss", agent.actor_loss, global_step=actor_losses.size-1) 
         critic_losses = np.append(critic_losses, agent.critic_loss)
         writer.add_scalar("Loss/critic_loss", agent.critic_loss, global_step=critic_losses.size-1) 
-        if policy == "SAC":
+        if kPolicy == "SAC":
             alpha_losses = np.append(alpha_losses, agent.alpha_loss)
             writer.add_scalar("Loss/alpha_loss", agent.alpha_loss, global_step=alpha_losses.size-1) 
             alphas = np.append(alphas, agent.alpha.item())
@@ -163,7 +163,7 @@ def loadData():
     for i in range(actor_losses.size): writer.add_scalar("Loss/actor_loss", actor_losses[i], global_step=i)  
     for i in range(critic_losses.size): writer.add_scalar("Loss/critic_loss", critic_losses[i], global_step=i)  
 
-    if policy == "SAC": 
+    if kPolicy == "SAC": 
         alpha_losses = np.load(url + "alpha_losses.npy")
         alphas = np.load(url + "alphas.npy")
 
@@ -199,7 +199,7 @@ def GetReward(cur_state, next_state, dt, step_count, is_arrival, is_crash):
     _distance_reward = (cur_state.target_distance - next_state.target_distance)*(5 / dt)*1.6*7 
     # arrival reward
     _arrival_reward = 0
-    if (is_arrival): _arrival_reward = 0
+    if (is_arrival): _arrival_reward = 100
     # crash reward
     _crash_reward = 0
     if (is_crash): _crash_reward = -100
@@ -219,8 +219,6 @@ def GetReward(cur_state, next_state, dt, step_count, is_arrival, is_crash):
     _reward_msg.laser_reward = _laser_reward
     _reward_msg.step_punish_reward = _step_reward
     _reward_msg.total_reward = _total_reward
-
-    print(_reward_msg)
 
     return _reward_msg
 
@@ -250,7 +248,7 @@ if __name__ == '__main__':
     episode_begin = episode_rewards.size
 
     # start to train
-    for episode in range(episode_begin, max_episode):
+    for episode in range(episode_begin, kMaxEpisode):
 
         print("=====================================")
         print("=========== Episode %d ===============" % (episode))
@@ -284,7 +282,7 @@ if __name__ == '__main__':
         episode_reward = 0
         episode_begin_time = rospy.Time.now()
 
-        for step in range(max_step_size):
+        for step in range(kMaxStepSize):
 
             step_begin_time = rospy.Time.now()
 
@@ -303,7 +301,7 @@ if __name__ == '__main__':
             _state_vector_publisher.publish(_state_vector_msg)
 
             # agent learn
-            if episode < init_episode: agent.fix_actor_flag = True
+            if episode < kInitEpisode: agent.fix_actor_flag = True
             else: agent.fix_actor_flag = False
             
             learnThread().start()
