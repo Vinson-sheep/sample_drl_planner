@@ -44,6 +44,7 @@ Simulator::Simulator() {
   set_uav_pose_server_ =
       _nh.advertiseService("set_uav_pose", &Simulator::SetUAVPose, this);
   step_server_ = _nh.advertiseService("step", &Simulator::Step, this);
+  get_obs_server = _nh.advertiseService("get_obstacle", &Simulator::GetObstacle, this);
 
   // Timer
   mainloop_timer_ =
@@ -307,6 +308,19 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
   resp.is_crash = IsCrash(state_);
   resp.is_arrive = IsArrival(state_);
   resp.success = true;
+  return true;
+}
+bool Simulator::GetObstacle(uav_simulator::GetObstacle::Request &req,
+                            uav_simulator::GetObstacle::Response &resp) {
+  //
+  if (pos_obs_.empty()) {
+    resp.success = false;
+  }
+  else {
+    resp.data.obstalces_position = pos_obs_;
+    resp.data.obstacles_radius = radius_obs_;
+    resp.success = true;
+  }
   return true;
 }
 void Simulator::UpdateModel(uav_simulator::State &state,

@@ -61,6 +61,7 @@ add_message_files(
   State.msg
   MapParam.msg
   SensorParam.msg
+  Obstacle.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -69,6 +70,7 @@ add_service_files(
   Step.srv
   SetUavPose.srv
   ResetMap.srv
+  GetObstacle.srv
 )
 
 ## Generate actions in the 'action' folder
