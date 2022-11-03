@@ -318,7 +318,7 @@ bool Simulator::GetObstacle(uav_simulator::GetObstacle::Request &req,
     resp.success = false;
   }
   else {
-    resp.data.obstalces_position = pos_obs_;
+    resp.data.obstacles_position = pos_obs_;
     resp.data.obstacles_radius = radius_obs_;
     resp.success = true;
   }

@@ -23,7 +23,6 @@ kStateDim = 44
 kActionDim = 2
 kMaxEpisode = 1000
 kMaxStepSize = 300
-
 # uav param
 kMaxLinearVelicity = 1.0
 kMaxAngularVeclity = 1.0
@@ -34,7 +33,7 @@ kSafeRadius = 0.5
 kLengthX = 15
 kLengthY = 15
 kNumObsMax = 10
-kNUmObsMin = 5
+kNumObsMin = 5
 kRadiusObsMax = 2.0
 kRadiusObsMin = 0.25
 kCrashLimit = 0.25
@@ -174,7 +173,7 @@ if __name__ == '__main__':
         _reset_map_req.param.length_x = kLengthX
         _reset_map_req.param.length_y = kLengthY
         _reset_map_req.param.num_obs_max = kNumObsMax
-        _reset_map_req.param.num_obs_min = kNUmObsMin
+        _reset_map_req.param.num_obs_min = kNumObsMin
         _reset_map_req.param.radius_obs_max = kRadiusObsMax
         _reset_map_req.param.radius_obs_min = kRadiusObsMin
         resp = _reset_map_client.call(_reset_map_req)

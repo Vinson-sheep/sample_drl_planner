@@ -1,0 +1,9 @@
+uav_simulator/Obstacle obstacle
+geometry_msgs/Point start
+geometry_msgs/Point goal
+float32 map_length_x
+float32 map_length_y
+float32 plan_time
+---
+geometry_msgs/Point[] path
+bool success
