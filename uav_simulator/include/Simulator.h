@@ -19,6 +19,7 @@
 #include "uav_simulator/State.h"
 #include "uav_simulator/Step.h"
 #include "uav_simulator/GetObstacle.h"
+#include "uav_simulator/SetGoal.h"
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
 
@@ -73,7 +74,8 @@ class Simulator {
   ros::ServiceServer set_uav_pose_server_;
   ros::ServiceServer get_state_server_;
   ros::ServiceServer step_server_;
-  ros::ServiceServer get_obs_server;
+  ros::ServiceServer get_obs_server_;
+  ros::ServiceServer set_goal_server_;
 
   // Timer
   ros::Timer mainloop_timer_;
@@ -88,6 +90,8 @@ class Simulator {
             uav_simulator::Step::Response &resp);
   bool GetObstacle(uav_simulator::GetObstacle::Request &req,
                    uav_simulator::GetObstacle::Response &resp);
+  bool SetGoal(uav_simulator::SetGoal::Request &req,
+               uav_simulator::SetGoal::Response &resp);
 
   bool ResetMapAndDisplay();
   bool UpdateLaserScan();

@@ -71,6 +71,7 @@ add_service_files(
   SetUavPose.srv
   ResetMap.srv
   GetObstacle.srv
+  SetGoal.srv
 )
 
 ## Generate actions in the 'action' folder
