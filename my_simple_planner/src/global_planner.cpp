@@ -12,6 +12,7 @@ namespace og = ompl::geometric;
 
 std::vector<geometry_msgs::Point> obs_pos_;
 std::vector<double> obs_radius_;
+double safe_distance_;
 
 double Distance(const geometry_msgs::Point &lhs,
                            const geometry_msgs::Point &rhs) {
@@ -29,11 +30,11 @@ bool IsStateValid(const ob::State *state) {
   _cur_point.x = (*_state2D)[0];
   _cur_point.y = (*_state2D)[1];
   for (int32_t i = 0; i < obs_pos_.size(); i++) {
-    if (Distance(obs_pos_[i], _cur_point) < obs_radius_[i]) {
-      return true;
+    if (Distance(obs_pos_[i], _cur_point) < obs_radius_[i] + safe_distance_) {
+      return false;
     }
   }
-  return false;
+  return true;
 }
 
 bool GetPath(my_simple_planner::GetPath::Request &req,
@@ -42,6 +43,7 @@ bool GetPath(my_simple_planner::GetPath::Request &req,
   // set obstacle info in global
   obs_pos_ = req.obstacle.obstacles_position;
   obs_radius_  = req.obstacle.obstacles_radius;
+  safe_distance_ = req.safe_distance;
   // construct the state space we are planning in
   auto _space(std::make_shared<ob::RealVectorStateSpace>(2));
   // set the bounds for the R^2 part of SE(2)
@@ -61,8 +63,8 @@ bool GetPath(my_simple_planner::GetPath::Request &req,
   _start[1] = req.start.y;
   // create a start state
   ob::ScopedState<> _goal(_space);
-  _goal[0] = req.start.x;
-  _goal[1] = req.start.y;
+  _goal[0] = req.goal.x;
+  _goal[1] = req.goal.y;
   // create a problem instance
   auto _pdef(std::make_shared<ob::ProblemDefinition>(_si));
   // set the start and goal states
@@ -78,6 +80,7 @@ bool GetPath(my_simple_planner::GetPath::Request &req,
   // print the problem settings
   _pdef->print(std::cout);
   // attempt to solve the problem within one second of planning time
+  // std::cout <<req.plan_time;
   ob::PlannerStatus _solved = _planner->ob::Planner::solve(req.plan_time);
 
   if (_solved) {

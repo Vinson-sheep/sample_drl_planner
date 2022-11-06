@@ -4,6 +4,7 @@ geometry_msgs/Point goal
 float32 map_length_x
 float32 map_length_y
 float32 plan_time
+float32 safe_distance
 ---
 geometry_msgs/Point[] path
 bool success
