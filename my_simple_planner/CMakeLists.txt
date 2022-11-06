@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   # uav_simulator
   message_generation
+  visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions

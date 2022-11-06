@@ -8,6 +8,8 @@
 #include "uav_simulator/SetGoal.h"
 #include "uav_simulator/State.h"
 #include "uav_simulator/Step.h"
+#include "visualization_msgs/Marker.h"
+#include "visualization_msgs/MarkerArray.h"
 
 // Test param
 double kLeadDistance = 5;
@@ -37,7 +39,7 @@ double kAngleMin = -2 * M_PI / 3;
 double kNumLaser = 40;
 // other
 double kGlobalPlanTime = 2.0;
-double kSafeDistance = 0.5;
+double kSafeDistance = 1.0;
 
 std::vector<double> GetStateVector(const uav_simulator::State state_msg) {
   //
@@ -89,6 +91,8 @@ int32_t main(int32_t argc, char *argv[]) {
       _nh.serviceClient<my_simple_planner::GetPath>("get_path");
   ros::Publisher _global_path_publisher =
       _nh.advertise<nav_msgs::Path>("global_path", 1);
+  ros::Publisher _global_path_point_publisher =
+      _nh.advertise<visualization_msgs::MarkerArray>("global_path_points", 1);
 
   // _get_action_client.waitForExistence();
   //   _get_path_client.waitForExistence();
@@ -148,11 +152,10 @@ int32_t main(int32_t argc, char *argv[]) {
 
   if (_flag == false) {
     std::cout << "Global planning failed!" << std::endl;
-  }
-  else {
+  } else {
     std::cout << "Global planning successed." << std::endl;
   }
-  // publish global path
+  // visualize global path
   nav_msgs::Path _global_path;
   _global_path.header.frame_id = "map";
   _global_path.header.stamp = ros::Time::now();
@@ -166,11 +169,35 @@ int32_t main(int32_t argc, char *argv[]) {
   }
   _global_path_publisher.publish(_global_path);
 
+  // visualize global path points
+  visualization_msgs::Marker _mk_msg;
+  visualization_msgs::MarkerArray _mk_arr_msg;
+  _mk_msg.header.frame_id = "map";
+  _mk_msg.header.stamp = ros::Time::now();
+  _mk_msg.type = visualization_msgs::Marker::SPHERE;
+  _mk_msg.action = visualization_msgs::Marker::ADD;
+  _mk_msg.pose.orientation.w = 1;
+  _mk_msg.color.a = 0.5;
+  _mk_msg.color.r = 0;
+  _mk_msg.color.g = 0.5;
+  _mk_msg.color.b = 0;
+  _mk_msg.scale.x = 0.4;
+  _mk_msg.scale.y = 0.4;
+  _mk_msg.scale.z = 0.4;
+  for (int32_t i = 0; i < _get_path_msg.response.path.size(); i++) {
+    _mk_msg.id = i;
+    _mk_msg.pose.position.x = _get_path_msg.response.path[i].x;
+    _mk_msg.pose.position.y = _get_path_msg.response.path[i].y;
+    _mk_msg.pose.position.z = _get_path_msg.response.path[i].z;
+    _mk_arr_msg.markers.push_back(_mk_msg);
+  }
+_global_path_point_publisher.publish(_mk_arr_msg);
+
   // start tracing
 
   //
-//   uav_simulator::Step _step_msg;
-//   _step_msg.request.step_time = kStepTime;
+  //   uav_simulator::Step _step_msg;
+  //   _step_msg.request.step_time = kStepTime;
   //
 
   // get obstacle info
