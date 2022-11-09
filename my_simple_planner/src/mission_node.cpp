@@ -62,9 +62,9 @@ std::vector<double> GetStateVector(const uav_simulator::State state_msg) {
   _result.push_back(_angle_velocity);
   // add target info
   double _target_distance =
-      (state_msg.target_distance - 2.5) / 5 / 2;
+      (state_msg.target_distance - 2.5) / 2.5;
   _result.push_back(_target_distance);
-  double _target_angle = (state_msg.target_angle - M_PI_2) / M_PI_2;
+  double _target_angle = state_msg.target_angle / M_PI;
   _result.push_back(_target_angle);
 
   return _result;

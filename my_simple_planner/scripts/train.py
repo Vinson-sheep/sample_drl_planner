@@ -188,9 +188,9 @@ def GetStateVector(state):
     _angle_velicity = state.twist.angular.z / kMaxAngularVeclity
     _result.append(_angle_velicity)
     # add target info
-    _target_distance = (state.target_distance - kTargetDistance/2) / kTargetDistance/2
+    _target_distance = (state.target_distance - kTargetDistance/2) / (kTargetDistance/2)
     _result.append(_target_distance)
-    _target_angle = (state.target_angle - math.pi/2) / (math.pi/2)
+    _target_angle = state.target_angle / math.pi
     _result.append(_target_angle)
 
     return np.array(_result)
