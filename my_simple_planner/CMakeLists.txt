@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(my_simple_planner)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -13,9 +13,9 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   nav_msgs
   rospy
-  # uav_simulator
   message_generation
   visualization_msgs
+  # uav_simulator
 )
 
 ## System dependencies are found with CMake's conventions
@@ -77,9 +77,9 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
-  uav_simulator
   geometry_msgs
   sensor_msgs
+  uav_simulator
 )
 
 ################################################

@@ -23,8 +23,9 @@ if (kPolicy == "SAC"):
     agent = SAC.SAC(**kwargs)
 
 def GetActionCB(req):
-    resp = GetActionResponse()  
+    resp = GetActionResponse() 
     resp.action  = agent.act(req.state)
+    resp.success = True
     return resp
 
 if __name__ == '__main__':

@@ -1,4 +1,4 @@
-float32[] state
+float64[] state
 ---
 float32[] action
 bool success

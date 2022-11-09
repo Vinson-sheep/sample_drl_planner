@@ -167,10 +167,18 @@ Visualization Manager:
           Value: true
         - Class: rviz/MarkerArray
           Enabled: true
-          Marker Topic: global_path_point
+          Marker Topic: global_path_points
           Name: MarkerArray
           Namespaces:
-            {}
+            "": true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/Marker
+          Enabled: true
+          Marker Topic: leading_point
+          Name: Marker
+          Namespaces:
+            "": true
           Queue Size: 100
           Value: true
       Enabled: true
@@ -203,25 +211,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 37.43047332763672
+      Distance: 9.392486572265625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -8.785000801086426
-        Y: 8.378883361816406
-        Z: 3.814697265625e-6
+        X: -2.070678472518921
+        Y: -39.49232864379883
+        Z: 1.654148945817724e-5
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.044796347618103
+      Pitch: 1.469795823097229
       Target Frame: <Fixed Frame>
       Value: ThirdPersonFollower (rviz)
-      Yaw: 3.3117446899414062
+      Yaw: 3.496739625930786
     Saved: ~
 Window Geometry:
   Displays:

@@ -12,13 +12,14 @@
 #include "visualization_msgs/MarkerArray.h"
 
 // Test param
-double kLeadDistance = 5;
+double kMaxLeadDistance = 5;
+double kMinLeadDistance = 2.0;
+double kLeadDistanceFactor = 5.0;
 double kMaxMissionNum = 100;
-double kMaxStepNum = 100;
 // uav param
 double kMaxLinearVelicity = 1.0;
 double kMaxAngularVelocity = 1.0;
-double kStepTime = 0.2;
+double kStepTime = 0.1;
 // map param
 double kTargetDistance = 80;
 double kSafeRadius = 0.5;
@@ -61,12 +62,84 @@ std::vector<double> GetStateVector(const uav_simulator::State state_msg) {
   _result.push_back(_angle_velocity);
   // add target info
   double _target_distance =
-      (state_msg.target_distance - kTargetDistance / 2) / (kTargetDistance / 2);
+      (state_msg.target_distance - 2.5) / 5 / 2;
   _result.push_back(_target_distance);
   double _target_angle = (state_msg.target_angle - M_PI_2) / M_PI_2;
   _result.push_back(_target_angle);
 
   return _result;
+}
+double Distance(const geometry_msgs::Point &lhs,
+                const geometry_msgs::Point &rhs) {
+  //
+  return sqrt((lhs.x - rhs.x) * (lhs.x - rhs.x) +
+              (lhs.y - rhs.y) * (lhs.y - rhs.y));
+}
+double Distance(const geometry_msgs::Pose &lhs,
+                const geometry_msgs::Pose &rhs) {
+  //
+  return Distance(lhs.position, rhs.position);
+}
+bool Translate(const geometry_msgs::Point &tr_point,
+                          geometry_msgs::Point &point) {
+  //
+  point.x += tr_point.x;
+  point.y += tr_point.y;
+  return true;
+}
+bool Rotate(const double theta, geometry_msgs::Point &point) {
+  //
+  double _dist = sqrt(point.x * point.x + point.y + point.y);
+  double _theta_ori = atan2(point.y, point.x);
+  _theta_ori += theta;
+  point.x = _dist * cos(_theta_ori);
+  point.y = _dist * sin(_theta_ori);
+  return true;
+}
+void Interpolate(nav_msgs::Path &path, const double delta_d) {
+  // 
+  int32_t _n = path.poses.size();
+  nav_msgs::Path _path_t;
+  _path_t.header = path.header;
+  _path_t.poses.push_back(path.poses.front());
+  for (int32_t i = 1; i< _n; i++) {
+    double _dist = Distance(path.poses[i-1].pose, path.poses[i].pose);
+    double _dist_count = delta_d;
+    double _theta = atan2(
+        path.poses[i].pose.position.y - path.poses[i - 1].pose.position.y,
+        path.poses[i].pose.position.x - path.poses[i - 1].pose.position.x);
+    while (_dist_count < _dist) {
+      geometry_msgs::Point _point_t;
+      _point_t.x = _dist_count;
+      _point_t.y = 0;
+      _point_t.z = path.poses[i-1].pose.position.z;
+      Rotate(_theta, _point_t);
+      Translate(path.poses[i-1].pose.position, _point_t);
+      geometry_msgs::PoseStamped _pst;
+      _pst.pose.orientation = path.poses[i-1].pose.orientation;
+      _pst.pose.position = _point_t;
+      _path_t.poses.push_back(_pst);
+      _dist_count += delta_d;
+    }
+    _path_t.poses.push_back(path.poses[i]);
+  }
+  path = _path_t;
+}
+
+void GetTrackingPoint(const nav_msgs::Path &path, const uav_simulator::State &cur_state, int32_t &cur_idx) {
+  // find tracking point
+  geometry_msgs::Point _cur_point;
+  _cur_point.x = cur_state.pose.position.x;
+  _cur_point.y = cur_state.pose.position.y;
+  _cur_point.z = cur_state.pose.position.z;
+  double _cur_linear_velocity = sqrt(pow(cur_state.twist.linear.x, 2.0) + pow(cur_state.twist.linear.y, 2.0));
+  double _lead_distance = kLeadDistanceFactor * _cur_linear_velocity;
+  _lead_distance = std::max(std::min(_lead_distance, kMaxLeadDistance), kMinLeadDistance);
+  for (int32_t i = cur_idx, _n = path.poses.size(); i < _n; i++) {
+    double _dist_t = Distance(_cur_point, path.poses[i].pose.position);
+    if (_dist_t > _lead_distance) break;
+    cur_idx = i;
+  }
 }
 
 int32_t main(int32_t argc, char *argv[]) {
@@ -93,6 +166,10 @@ int32_t main(int32_t argc, char *argv[]) {
       _nh.advertise<nav_msgs::Path>("global_path", 1);
   ros::Publisher _global_path_point_publisher =
       _nh.advertise<visualization_msgs::MarkerArray>("global_path_points", 1);
+  ros::Publisher _leading_point_publisher =
+      _nh.advertise<visualization_msgs::Marker>("leading_point", 1);
+  ros::Publisher _state_pulisher =
+      _nh.advertise<uav_simulator::State>("state", 1);
 
   // _get_action_client.waitForExistence();
   //   _get_path_client.waitForExistence();
@@ -110,6 +187,7 @@ int32_t main(int32_t argc, char *argv[]) {
   _reset_map_msg.request.param.radius_obs_min = kRadiusObsMin;
   _reset_map_msg.request.param.safe_radius = kSafeRadius;
   _reset_map_msg.request.param.target_distance = kTargetDistance;
+  _reset_map_msg.request.param.accelerate_rate = 1.0;
 
   _reset_map_msg.request.sparam.angle_max = kAngleMax;
   _reset_map_msg.request.sparam.angle_min = kAngleMin;
@@ -194,44 +272,75 @@ int32_t main(int32_t argc, char *argv[]) {
 _global_path_point_publisher.publish(_mk_arr_msg);
 
   // start tracing
+  Interpolate(_global_path, 0.1);
+  int32_t _cur_idx = 0;
+  bool _done = false;
 
-  //
-  //   uav_simulator::Step _step_msg;
-  //   _step_msg.request.step_time = kStepTime;
-  //
+  while (_done == false) {
 
-  // get obstacle info
+    // get leading point
+    GetTrackingPoint(_global_path, _s0, _cur_idx);
+    // set leading point
+    uav_simulator::SetGoal _set_goal_msg;
+    _set_goal_msg.request.position = _global_path.poses[_cur_idx].pose.position;
+    _set_goal_client.call(_set_goal_msg);
+    _s0 = _set_goal_msg.response.state;
+    _s0_vector = GetStateVector(_s0);
 
-  // // get global path
-  // _get_path_msg.request.obstacle.obstacles_position = _obs_pos;
-  // _get_path_msg.request.obstacle.obstacles_radius = _obs_radius;
-  // _flag = _get_path_client.call(_get_path_msg);
-  // std::vector<geometry_msgs::Point> _path = _get_path_msg.response.path;
+    _state_pulisher.publish(_s0);
+    // visualize leading point
+    visualization_msgs::Marker _mk_msg;
+    _mk_msg.header.frame_id = "map";
+    _mk_msg.header.stamp = ros::Time::now();
+    _mk_msg.action = _mk_msg.ADD;
+    _mk_msg.color.a = 0.5;
+    _mk_msg.color.r = 1.0;
+    _mk_msg.color.g = 0;
+    _mk_msg.color.b = 0;
+    _mk_msg.id = 0;
+    _mk_msg.scale.x = 0.25;
+    _mk_msg.scale.y = 0.25;
+    _mk_msg.scale.z = 0.25;
+    _mk_msg.pose.position = _global_path.poses[_cur_idx].pose.position;
+    _mk_msg.pose.orientation.w = 1.0;
+    _mk_msg.type = _mk_msg.SPHERE;
+    _leading_point_publisher.publish(_mk_msg);
+    // get action
+    my_simple_planner::GetAction _get_action_msg;
+    _get_action_msg.request.state = _s0_vector;
+    _get_action_client.call(_get_action_msg);
+    _get_action_msg.response.action;
 
-  // for (int32_t i=0; i < kMaxMissionNum; i++) {
-  //   // reset map
-  //   bool _flag = _reset_map_client.call(_reset_map_msg);
-  //   if (_flag == false) {
-  //     std::cout << "Reset map failed!" << std::endl;
-  //     break;
-  //   }
-  //   uav_simulator::State _s0 = _reset_map_msg.response.state;
-  //   // get obstacle info
-  //   _flag = _get_obs_client.call(_get_obs_msg);
-  //   std::vector<geometry_msgs::Point> _obs_pos =
-  //       _get_obs_msg.response.data.obstalces_position;
-  //   std::vector<double> _obs_radius =
-  //       _get_obs_msg.response.data.obstacles_radius;
-  //   // get global path
-  //   _get_path_msg.request.obstacle.obstalces_position = _obs_pos;
-  //   _get_path_msg.request.obstacle.obstacles_radius = _obs_radius;
-  //   _flag = _get_path_client.call(_get_path_msg);
-  //   std::vector<geometry_msgs::Point> _path = _get_path_msg.response.path;
-  //   // start to trace
+    // step
+    uav_simulator::Step _step_msg;
+    _step_msg.request.control.linear_velocity =
+        (_get_action_msg.response.action[0] + 1) / 2 * kMaxLinearVelicity;
+    _step_msg.request.control.yaw_rate =
+        _get_action_msg.response.action[1] * kMaxAngularVelocity;
+    _step_msg.request.step_time = kStepTime;
+    _step_client.call(_step_msg);
+    
+    // 
+    bool _is_crash = _step_msg.response.is_crash;
+    bool _is_arrive = _step_msg.response.is_arrive;
+    _done  = (_is_arrive || _is_crash);
 
-  //   //
+    if (_is_crash) {
+      std::cout << "Mission: Crashed!" << std::endl;
+    }
+    if (_is_arrive) {
+      std::cout << "Mission: Arrived!" << std::endl;
+    }
 
-  // }
+    // update state
+    _s0 = _step_msg.response.state;
+    _s0_vector = GetStateVector(_s0);
+
+    // delete leading point
+    _mk_msg.header.stamp = ros::Time::now();
+    _mk_msg.action = _mk_msg.DELETE;
+    _leading_point_publisher.publish(_mk_msg);
+  }
 
   ros::spin();
 
