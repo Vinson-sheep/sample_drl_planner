@@ -14,12 +14,12 @@ from tensorboardX import SummaryWriter
 import SAC
 
 # Train param
-kLoadPorgress = False
-kLoadBuffer = False
-kLoadActor = False
-kLoadCritic = False
-kLoadLogAlpha = False
-kLoadOptim = False
+kLoadPorgress = True
+kLoadBuffer = True
+kLoadActor = True
+kLoadCritic = True
+kLoadLogAlpha = True
+kLoadOptim = True
 
 kFixActorFlag = False
 kUsePriority = True
@@ -28,26 +28,27 @@ kUsePriority = True
 kPolicy = "SAC"
 kStateDim = 44
 kActionDim = 2
-kMaxEpisode = 500
-kMaxStepSize = 300
+kMaxEpisode =  2000
+kMaxStepSize = 50
 kInitEpisode = 5
 K = 1
 # uav param
 kMaxLinearVelicity = 1.0
 kMaxAngularVeclity = 1.0
-kStepTime = 0.5
+kStepTime = 0.2
 # map param
-kTargetDistance = 6
-kSafeRadius = 0.5
+kTargetDistance = 5
+kSafeRadius = 0.4
 kLengthX = 15
 kLengthY = 15
-kNumObsMax = 15
+kNumObsMax = 20
 kNUmObsMin = 5
 kRadiusObsMax = 2.0
 kRadiusObsMin = 0.25
 kCrashLimit = 0.25
 kArriveLimit = 0.25
 KIntegrateDt = 0.02
+kAccelerateRate = 1.0
 # sensor param
 kRangeMax = 5.0
 kRangeMin = 0.15
@@ -196,16 +197,18 @@ def GetStateVector(state):
 
 def GetReward(cur_state, next_state, dt, step_count, is_arrival, is_crash):
     # distance reward
-    _distance_reward = (cur_state.target_distance - next_state.target_distance)*(5 / dt)*1.6*7 
+    _distance_reward = (cur_state.target_distance - next_state.target_distance)*(5 / dt)*1.6
     # arrival reward
     _arrival_reward = 0
-    if (is_arrival): _arrival_reward = 100
+    if (is_arrival): _arrival_reward = 20
     # crash reward
     _crash_reward = 0
-    if (is_crash): _crash_reward = -100
+    _min_range = min(next_state.scan.ranges) - kCrashLimit
+    _crash_reward  = -15.0 * np.exp(-_min_range / 0.1) 
+    # if (is_crash): _crash_reward = -100
     # laser reward
     _ranges = (np.array(next_state.scan.ranges) - next_state.scan.range_min) / (next_state.scan.range_max - next_state.scan.range_min)
-    _ranges = -1.0* np.exp(-_ranges / 0.1)
+    _ranges = -0.3* np.exp(-_ranges / 0.05)
     _laser_reward = max(np.sum(_ranges), -100)    
     # step reward
     _step_reward = -step_count * 0.04
@@ -278,6 +281,7 @@ if __name__ == '__main__':
         _reset_map_req.param.arrive_limit = kArriveLimit
         _reset_map_req.param.crash_limit = kCrashLimit
         _reset_map_req.param.intergrate_dt = KIntegrateDt
+        _reset_map_req.param.accelerate_rate = kAccelerateRate
         _reset_map_req.param.target_distance = kTargetDistance
         _reset_map_req.param.safe_radius = kSafeRadius
         _reset_map_req.param.length_x = kLengthX
@@ -302,7 +306,7 @@ if __name__ == '__main__':
             _a0_vector = agent.act(_s0_vector)
 
             # get rid of trap
-            if IsInTrap(_s0): _a0_vector[0] += 0.2
+            if IsInTrap(_s0): _a0_vector[0] += 0.1
 
             # DEBUG
             _control_msg = Control()

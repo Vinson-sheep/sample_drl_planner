@@ -19,6 +19,7 @@ Simulator::Simulator() {
   flight_height_ = 0.5;
   state_.pose.orientation.w = 1.0;
   intergrate_dt_ = 0.02;
+  accelerate_rate_ = 1.0;
   goal_id_ = -1;
   state_update_factor_ = 0.1;
 
@@ -97,6 +98,7 @@ bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req,
   range_min_ = req.sparam.range_min;
   num_laser_ = req.sparam.num_laser;
   intergrate_dt_ = req.param.intergrate_dt;
+  accelerate_rate_ = req.param.accelerate_rate;
   target_distance_ = req.param.target_distance;
   safe_radius_ = req.param.safe_radius;
   length_x_ = req.param.length_x;
@@ -169,6 +171,10 @@ bool Simulator::ResetMapAndDisplay() {
       _radius = _radius_distribution(_e);
       double _dist_start = Distance(_point, start_);
       double _dist_goal = Distance(_point, goal_);
+      // obstacle should keep away from the start-goal line
+      if (std::fabs(_point.y) < target_distance_ / 2 &&
+          std::fabs(_point.x) < _radius)
+        continue;
       if (_dist_start > (safe_radius_ + _radius) &&
           _dist_goal > (safe_radius_ + _radius))
         break;
@@ -368,13 +374,13 @@ void Simulator::Intergrator(uav_simulator::State &state,
   while (_intergrate_time < duration + std::numeric_limits<double>::epsilon()) {
     UpdateModel(state, control, intergrate_dt_);
     _intergrate_time += intergrate_dt_;
-    ros::Duration(intergrate_dt_).sleep();
+    ros::Duration(intergrate_dt_/accelerate_rate_).sleep();
     ros::spinOnce();
     if (IsCrash(state) || IsArrival(state)) break;
   }
   if (_intergrate_time + std::numeric_limits<double>::epsilon() > duration) {
     UpdateModel(state, control, _intergrate_time - duration);
-    ros::Duration(_intergrate_time - duration).sleep();
+    ros::Duration(_intergrate_time - duration/accelerate_rate_).sleep();
     ros::spinOnce();
   }
 }

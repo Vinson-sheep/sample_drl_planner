@@ -15,30 +15,31 @@ import pickle
 import SAC
 
 # Test param
-kLoadProgress = False
+kLoadProgress = True
 
 # DRL param
 kPolicy = "SAC" # DDPG or TD3 or SAC
 kStateDim = 44
 kActionDim = 2
 kMaxEpisode = 1000
-kMaxStepSize = 300
+kMaxStepSize = 100
 # uav param
 kMaxLinearVelicity = 1.0
 kMaxAngularVeclity = 1.0
-kStepTime = 0.2
+kStepTime = 0.1
 # map param
-kTargetDistance = 8
+kTargetDistance = 5
 kSafeRadius = 0.5
 kLengthX = 15
 kLengthY = 15
-kNumObsMax = 10
+kNumObsMax = 20
 kNumObsMin = 5
 kRadiusObsMax = 2.0
 kRadiusObsMin = 0.25
 kCrashLimit = 0.25
 kArriveLimit = 0.25
 KIntegrateDt = 0.02
+kAccelerateRate = 1.0
 # sensor param
 kRangeMax = 5.0
 kRangeMin = 0.15
@@ -168,6 +169,7 @@ if __name__ == '__main__':
         _reset_map_req.param.arrive_limit = kArriveLimit
         _reset_map_req.param.crash_limit = kCrashLimit
         _reset_map_req.param.intergrate_dt = KIntegrateDt
+        _reset_map_req.param.accelerate_rate = kAccelerateRate
         _reset_map_req.param.target_distance = kTargetDistance
         _reset_map_req.param.safe_radius = kSafeRadius
         _reset_map_req.param.length_x = kLengthX
@@ -187,7 +189,7 @@ if __name__ == '__main__':
             _a0_vector = agent.act(_s0_vector)
 
             # get rid of trap
-            if IsInTrap(_s0): break
+            # if IsInTrap(_s0): break
 
             # DEBUG
             _control_msg = Control()

@@ -5,7 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /MarkerArray1
+        - /Grid1
         - /Global1
         - /Global1/Path1
         - /Global1/MarkerArray1
@@ -180,7 +180,7 @@ Visualization Manager:
     Background Color: 139; 200; 255
     Default Light: true
     Fixed Frame: map
-    Frame Rate: 60
+    Frame Rate: 63
   Name: root
   Tools:
     - Class: rviz/Interact
@@ -202,26 +202,26 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/Orbit
-      Distance: 56.877647399902344
+      Class: rviz/ThirdPersonFollower
+      Distance: 37.43047332763672
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -9.261502265930176
-        Y: 2.1150834560394287
-        Z: 29.00765037536621
-      Focal Shape Fixed Size: false
+        X: -8.785000801086426
+        Y: 8.378883361816406
+        Z: 3.814697265625e-6
+      Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.2247965335845947
+      Pitch: 1.044796347618103
       Target Frame: <Fixed Frame>
-      Value: Orbit (rviz)
-      Yaw: 3.0867598056793213
+      Value: ThirdPersonFollower (rviz)
+      Yaw: 3.3117446899414062
     Saved: ~
 Window Geometry:
   Displays:

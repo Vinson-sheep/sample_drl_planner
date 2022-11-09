@@ -47,6 +47,7 @@ class Simulator {
   double flight_height_;
   uav_simulator::State state_;
   double intergrate_dt_;
+  double accelerate_rate_;
   double state_update_factor_;
 
   // grid map
