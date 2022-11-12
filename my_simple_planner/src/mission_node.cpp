@@ -276,6 +276,8 @@ _global_path_point_publisher.publish(_mk_arr_msg);
   int32_t _cur_idx = 0;
   bool _done = false;
 
+  ros::Duration(10).sleep();
+
   while (_done == false) {
 
     // get leading point
