@@ -1,0 +1,5 @@
+float32 obs_x
+float32 obs_y
+float32 obs_radius
+---
+bool success

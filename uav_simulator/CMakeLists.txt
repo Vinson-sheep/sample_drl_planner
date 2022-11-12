@@ -71,6 +71,7 @@ add_service_files(
   SetUavPose.srv
   ResetMap.srv
   GetObstacle.srv
+  AddObstacle.srv
   SetGoal.srv
 )
 

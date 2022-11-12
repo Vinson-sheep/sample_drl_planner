@@ -6,6 +6,7 @@
 #include <vector>
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/Pose.h"
+#include "geometry_msgs/PoseStamped.h"
 #include "geometry_msgs/TransformStamped.h"
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
@@ -20,6 +21,7 @@
 #include "uav_simulator/Step.h"
 #include "uav_simulator/GetObstacle.h"
 #include "uav_simulator/SetGoal.h"
+#include "uav_simulator/AddObstacle.h"
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
 
@@ -65,6 +67,9 @@ class Simulator {
   geometry_msgs::Point start_;
   int32_t goal_id_;
 
+  // Subscriber
+  ros::Subscriber rviz_goal_sub_;
+
   // Publisher & tf
   ros::Publisher grid_map_publisher_;
   ros::Publisher laser_scan_publisher_;
@@ -77,6 +82,10 @@ class Simulator {
   ros::ServiceServer step_server_;
   ros::ServiceServer get_obs_server_;
   ros::ServiceServer set_goal_server_;
+  ros::ServiceServer add_obs_server_;
+
+  // Client
+  ros::ServiceClient add_obs_client_;
 
   // Timer
   ros::Timer mainloop_timer_;
@@ -93,6 +102,9 @@ class Simulator {
                    uav_simulator::GetObstacle::Response &resp);
   bool SetGoal(uav_simulator::SetGoal::Request &req,
                uav_simulator::SetGoal::Response &resp);
+  bool AddObstacleCB(uav_simulator::AddObstacle::Request &req,
+                   uav_simulator::AddObstacle::Response &resp);
+  void RvizGoalCB(const geometry_msgs::PoseStamped::ConstPtr &msg_p);
 
   bool ResetMapAndDisplay();
   bool UpdateLaserScan();

@@ -33,6 +33,10 @@ Simulator::Simulator() {
   radius_obs_max_ = 2.0;
   radius_obs_min_ = 0.25;
 
+  // Subscriber
+  rviz_goal_sub_ = _nh.subscribe<geometry_msgs::PoseStamped>(
+      "/move_base_simple/goal", 1, &Simulator::RvizGoalCB, this);
+
   // Publisher
   grid_map_publisher_ =
       _nh.advertise<visualization_msgs::MarkerArray>("grid_map", 10);
@@ -47,6 +51,10 @@ Simulator::Simulator() {
   step_server_ = _nh.advertiseService("step", &Simulator::Step, this);
   get_obs_server_ = _nh.advertiseService("get_obstacle", &Simulator::GetObstacle, this);
   set_goal_server_ = _nh.advertiseService("set_goal", &Simulator::SetGoal, this);
+  add_obs_server_ = _nh.advertiseService("add_obstacle", &Simulator::AddObstacleCB, this);
+
+  // Client
+  add_obs_client_ = _nh.serviceClient<uav_simulator::AddObstacle>("add_obstacle");
 
   // Timer
   mainloop_timer_ =
@@ -231,7 +239,6 @@ bool Simulator::ResetMapAndDisplay() {
   UpdateLaserScan();
   laser_scan_publisher_.publish(state_.scan);
 
-
   // publish
   grid_map_publisher_.publish(_mk_arr_msg);
 }
@@ -311,7 +318,6 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
   UpdateLaserScan();
   laser_scan_publisher_.publish(state_.scan);
 
-
   resp.is_crash = IsCrash(state_);
   resp.is_arrive = IsArrival(state_);
   resp.success = true;
@@ -348,6 +354,70 @@ bool Simulator::SetGoal(uav_simulator::SetGoal::Request &req,
   resp.state = state_;
   resp.success = true;
   return true;
+}
+bool Simulator::AddObstacleCB(uav_simulator::AddObstacle::Request &req,
+                   uav_simulator::AddObstacle::Response &resp) {
+  //
+  visualization_msgs::MarkerArray _mk_arr_msg;
+  visualization_msgs::Marker _mk_msg;
+  _mk_msg.header.frame_id = "map";
+  _mk_msg.header.stamp = ros::Time::now();
+  _mk_msg.type = visualization_msgs::Marker::CYLINDER;
+  _mk_msg.pose.orientation.w = 1;
+  _mk_msg.color.r = 0.0;
+  _mk_msg.color.g = 0.0;
+  _mk_msg.color.b = 1.0;
+  _mk_msg.color.a = 0.9;
+  _mk_msg.action = visualization_msgs::Marker::ADD;
+  _mk_msg.scale.x = req.obs_radius * 2;
+  _mk_msg.scale.y = req.obs_radius * 2;
+  _mk_msg.scale.z = 1.0;
+  _mk_msg.pose.position.x = req.obs_x;
+  _mk_msg.pose.position.y = req.obs_y;
+  _mk_msg.pose.position.z = 0.5;
+  _mk_msg.id = pos_obs_.size();
+  _mk_arr_msg.markers.push_back(_mk_msg);
+  grid_map_publisher_.publish(_mk_arr_msg);
+
+  geometry_msgs::Point _point;
+  _point.x = req.obs_x;
+  _point.y = req.obs_y;
+  _point.z = 0.5;
+  pos_obs_.push_back(_point);
+  radius_obs_.push_back(req.obs_radius);
+
+  resp.success = true;
+  return true;
+}
+void Simulator::RvizGoalCB(const geometry_msgs::PoseStamped::ConstPtr &msg_p) {
+  //
+  visualization_msgs::MarkerArray _mk_arr_msg;
+  visualization_msgs::Marker _mk_msg;
+  _mk_msg.header.frame_id = "map";
+  _mk_msg.header.stamp = ros::Time::now();
+  _mk_msg.type = visualization_msgs::Marker::CYLINDER;
+  _mk_msg.pose.orientation.w = 1;
+  _mk_msg.color.r = 0.0;
+  _mk_msg.color.g = 0.0;
+  _mk_msg.color.b = 1.0;
+  _mk_msg.color.a = 0.9;
+  _mk_msg.action = visualization_msgs::Marker::ADD;
+  _mk_msg.scale.x = 0.25 * 2;
+  _mk_msg.scale.y = 0.25 * 2;
+  _mk_msg.scale.z = 1.0;
+  _mk_msg.pose.position.x = msg_p->pose.position.x;
+  _mk_msg.pose.position.y = msg_p->pose.position.y;
+  _mk_msg.pose.position.z = 0.5;
+  _mk_msg.id = pos_obs_.size();
+  _mk_arr_msg.markers.push_back(_mk_msg);
+  grid_map_publisher_.publish(_mk_arr_msg);
+
+  geometry_msgs::Point _point;
+  _point.x = msg_p->pose.position.x;
+  _point.y = msg_p->pose.position.y;
+  _point.z = 0.5;
+  pos_obs_.push_back(_point);
+  radius_obs_.push_back(0.25);
 }
 void Simulator::UpdateModel(uav_simulator::State &state,
                             const uav_simulator::Control control,
