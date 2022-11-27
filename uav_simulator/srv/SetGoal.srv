@@ -1,4 +1,0 @@
-geometry_msgs/Point position
----
-uav_simulator/State state
-bool success

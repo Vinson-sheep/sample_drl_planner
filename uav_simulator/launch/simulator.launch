@@ -1,0 +1,35 @@
+<launch>
+    <arg name="model" />
+    <param name="robot_description" textfile="$(find uav_simulator)/urdf/Avatar.urdf" />
+  <!-- <node
+    name="joint_state_publisher"
+    pkg="joint_state_publisher"
+    type="joint_state_publisher" /> -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find uav_simulator)/config/show.rviz" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="son2" args="0 0 0 1.57 0 0 /base_link /laser_scan" output="screen" />
+
+  <!-- simulator-->
+  <node name="simulator" pkg="uav_simulator" type="simulator" output="screen">
+    <!-- uav -->
+    <param name="crash_limit" value="100" />
+    <param name="arrive_limit" value="100" />
+    <param name="angle_max" value="100" />
+    <param name="angle_min" value="100" />
+    <param name="range_max" value="100" />
+    <param name="range_min" value="100" />
+    <param name="num_laser" value="100" />
+    <param name="flight_height" value="100" />
+    <param name="intergrate_dt" value="100" />
+    <param name="accelerate_rate" value="100" />
+    <param name="state_update_factor" value="100" />
+    <!-- grid map -->
+    <param name="target_distance" value="100" />
+    <param name="safe_radius" value="100" />
+    <param name="length_x" value="100" />
+    <param name="length_y" value="100" />
+    <param name="num_obs_max" value="100" />
+    <param name="num_obs_min" value="100" />
+    <param name="radius_obs_max" value="100" />
+    <param name="radius_obs_min" value="100" />
+  </node>
+</launch>

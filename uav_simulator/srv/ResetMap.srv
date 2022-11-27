@@ -1,5 +1,4 @@
-uav_simulator/MapParam param
-uav_simulator/SensorParam sparam
 ---
 uav_simulator/State state
+float32[] state_vector
 bool success

@@ -5,10 +5,12 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /Status1
         - /Grid1
-        - /Global1
+        - /Grid1/Line Style1
         - /Global1/Path1
         - /Global1/MarkerArray1
+        - /map1
       Splitter Ratio: 0.5
     Tree Height: 634
   - Class: rviz/Selection
@@ -29,7 +31,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: LaserScan
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -44,7 +46,7 @@ Visualization Manager:
       Enabled: true
       Line Style:
         Line Width: 0.029999999329447746
-        Value: Lines
+        Value: Billboards
       Name: Grid
       Normal Cell Count: 0
       Offset:
@@ -81,14 +83,6 @@ Visualization Manager:
       Update Interval: 0
       Value: true
       Visual Enabled: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: grid_map
-      Name: MarkerArray
-      Namespaces:
-        "": true
-      Queue Size: 100
-      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -126,18 +120,13 @@ Visualization Manager:
           Value: true
         laser_scan:
           Value: true
-        map:
-          Value: true
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: true
       Tree:
-        map:
-          base_link:
-            laser_scan:
-              {}
+        {}
       Update Interval: 0
       Value: true
     - Class: rviz/Group
@@ -170,7 +159,7 @@ Visualization Manager:
           Marker Topic: global_path_points
           Name: MarkerArray
           Namespaces:
-            "": true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -178,17 +167,53 @@ Visualization Manager:
           Marker Topic: leading_point
           Name: Marker
           Namespaces:
-            "": true
+            {}
           Queue Size: 100
           Value: true
       Enabled: true
       Name: Global
+    - Class: rviz/Group
+      Displays:
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: obstacles
+          Name: obstacles
+          Namespaces:
+            "": true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: obstacles_extra
+          Name: obstacles_extra
+          Namespaces:
+            "": true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: start_goal
+          Name: start_goal
+          Namespaces:
+            "": true
+          Queue Size: 100
+          Value: true
+        - Class: rviz/MarkerArray
+          Enabled: true
+          Marker Topic: local_goals
+          Name: local_goals
+          Namespaces:
+            {}
+          Queue Size: 100
+          Value: true
+      Enabled: true
+      Name: map
   Enabled: true
   Global Options:
     Background Color: 139; 200; 255
     Default Light: true
     Fixed Frame: map
-    Frame Rate: 63
+    Frame Rate: 60
   Name: root
   Tools:
     - Class: rviz/Interact
@@ -211,25 +236,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 9.392486572265625
+      Distance: 26.167665481567383
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -2.070678472518921
-        Y: -39.49232864379883
-        Z: 1.654148945817724e-5
-      Focal Shape Fixed Size: true
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.469795823097229
+      Pitch: 0.38039785623550415
       Target Frame: <Fixed Frame>
       Value: ThirdPersonFollower (rviz)
-      Yaw: 3.496739625930786
+      Yaw: 2.130401134490967
     Saved: ~
 Window Geometry:
   Displays:

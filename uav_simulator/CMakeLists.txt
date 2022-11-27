@@ -23,7 +23,8 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(ompl REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -58,21 +59,20 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Control.msg
-  State.msg
   MapParam.msg
   SensorParam.msg
   Obstacle.msg
+  State.msg
 )
 
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  Step.srv
-  SetUavPose.srv
-  ResetMap.srv
-  GetObstacle.srv
   AddObstacle.srv
-  SetGoal.srv
+  ResetMap.srv
+  SetMapParam.srv
+  SetSensorParam.srv
+  Step.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -134,6 +134,8 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
+  /usr/local/include/ompl-1.5
+  ${EIGEN3_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -167,6 +169,8 @@ add_dependencies(simulator ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED
 ## Specify libraries to link a library or executable target against
 target_link_libraries(simulator
   ${catkin_LIBRARIES}
+  ${OMPL_LIBRARIES}
+  ${EIGEN_LIBRARIES}
 )
 
 #############

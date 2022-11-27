@@ -1,3 +1,4 @@
+
 #! /usr/bin/env python
 #-*- coding: UTF-8 -*- 
 
@@ -6,6 +7,7 @@ import rospy
 from uav_simulator.srv import *
 from uav_simulator.msg import *
 from my_simple_planner.msg import *
+from my_simple_planner.srv import *
 import numpy as np
 import os
 import threading
@@ -14,15 +16,17 @@ from tensorboardX import SummaryWriter
 import SAC
 
 # Train param
-kLoadPorgress = True
-kLoadBuffer = True
-kLoadActor = True
-kLoadCritic = True
-kLoadLogAlpha = True
-kLoadOptim = True
+kLoadPorgress = False
+kLoadBuffer = False
+kLoadActor = False
+kLoadCritic = False
+kLoadLogAlpha = False
+kLoadOptim = False
 
 kFixActorFlag = False
 kUsePriority = True
+
+kTargetNum = 1
 
 # DRL param
 kPolicy = "SAC"
@@ -245,6 +249,7 @@ if __name__ == '__main__':
     _reset_map_client = rospy.ServiceProxy("reset_map", ResetMap)
     _step_client = rospy.ServiceProxy("step", Step)
     _set_uav_pose_client = rospy.ServiceProxy("set_uav_pose", SetUavPose)
+    _get_path_client = rospy.ServiceProxy("get_path", GetPath)
 
     _reward_publisher = rospy.Publisher("reward", Reward, queue_size=1)
     _control_publisher = rospy.Publisher("control", Control, queue_size=1)
@@ -291,6 +296,19 @@ if __name__ == '__main__':
         _reset_map_req.param.radius_obs_max = kRadiusObsMax
         _reset_map_req.param.radius_obs_min = kRadiusObsMin
         resp = _reset_map_client.call(_reset_map_req)
+
+        # get obstacle information
+
+        # global planner
+        _get_path_req  = GetPathRequest()
+        _get_path_req.start.x = 0
+        _get_path_req.start.y = -kTargetDistance / 2
+        _get_path_req.start.z = 0.5
+        _get_path_req.goal.x = 0
+        _get_path_req.goal.y = kTargetDistance / 2
+        _get_path_req.goal.z = 0.5
+        _get_path_req.map_length_x = kLengthX
+        _get_path_req.map_length_y = kLengthY
 
         _s0 = resp.state
         _s0_vector = GetStateVector(_s0)
