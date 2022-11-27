@@ -22,6 +22,7 @@
 #include "uav_simulator/Step.h"
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
+#include "nav_msgs/Path.h"
 // OMPL
 #include <ompl/base/SpaceInformation.h>
 #include <ompl/base/spaces/SE2StateSpace.h>
@@ -65,6 +66,9 @@ class Simulator {
   vector<geometry_msgs::Point> local_goals_;
   vector<geometry_msgs::Point> start_goal_;
 
+  // path
+  nav_msgs::Path global_path_;
+
   // Subscriber
   ros::Subscriber rviz_goal_sub_;
 
@@ -96,16 +100,11 @@ class Simulator {
                    uav_simulator::AddObstacle::Response &resp);
   void RvizGoalCB(const geometry_msgs::PoseStamped::ConstPtr &msg_p);
 
-  // reset & clear & update
+  // reset &update
   bool ResetObstacles();
   bool ResetObstaclesExtra();
-  bool DisplayObstacles();
-  bool DisplayObstaclesExtra();
-  bool DisplayLocalGoals();
-  bool DisplayStartGoal();
-  bool ClearAllMarkers();
-  bool ClearLocalGoalsMarkers();
-  void UpdateDistanceInfo();
+  bool UpdateGlobalPath();
+  bool UpdateDistanceAngleInfo();
   bool UpdateLaserScan();
   bool UpdateLocalGoals();
 
@@ -118,8 +117,6 @@ class Simulator {
                    const uav_simulator::Control control, const double duration);
   bool IsCrash(const uav_simulator::State &state);
   bool IsArrival(const uav_simulator::State &state);
-
-
 };
 
 #endif /* SIMULATOR_H */

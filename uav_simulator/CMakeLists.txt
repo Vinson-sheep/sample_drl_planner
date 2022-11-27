@@ -154,6 +154,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(simulator 
   src/Simulator.cpp
+  src/common.cpp
 )
 
 ## Rename C++ executable without prefix

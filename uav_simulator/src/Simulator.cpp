@@ -7,28 +7,28 @@ Simulator::Simulator() {
   ros::NodeHandle _private_nh;
 
   // uav state
-  crash_limit_ = 0.2;
-  arrive_limit_ = 0.2;
-  angle_max_ = 2 * M_PI / 3;
-  angle_min_ = -2 * M_PI / 3;
-  range_max_ = 3.0;
-  range_min_ = 0.15;
-  num_laser_ = 40;
-  flight_height_ = 0.5;
+  crash_limit_ = _private_nh.param("crash_limit", 0.2);
+  arrive_limit_ = _private_nh.param("arrive_limit", 0.2);
+  angle_max_ = _private_nh.param("angle_max", 2 * M_PI / 3);
+  angle_min_ = _private_nh.param("angle_min", -2 * M_PI / 3);
+  range_max_ = _private_nh.param("range_max", 3.0);
+  range_min_ = _private_nh.param("range_min", 0.15);
+  num_laser_ = _private_nh.param("num_laser", 40);
+  flight_height_ = _private_nh.param("flight_height", 0.5);
+  intergrate_dt_ = _private_nh.param("intergrate_dt", 0.02);
+  accelerate_rate_ = _private_nh.param("accelerate_rate", 1.0);
+  state_update_factor_ = _private_nh.param("state_update_factor", 0.1);
   state_.pose.orientation.w = 1.0;
-  intergrate_dt_ = 0.02;
-  accelerate_rate_ = 1.0;
-  state_update_factor_ = 0.1;
 
   // grid map
-  target_distance_ = 8.0;
-  safe_radius_ = 0.25;
-  length_x_ = 15;
-  length_y_ = 15;
-  num_obs_max_ = 20;
-  num_obs_min_ = 20;
-  radius_obs_max_ = 2.0;
-  radius_obs_min_ = 0.25;
+  target_distance_ = _private_nh.param("target_distance", 8.0);
+  safe_radius_ = _private_nh.param("safe_radius", 0.25);
+  length_x_ = _private_nh.param("length_x", 15);
+  length_y_ = _private_nh.param("length_y", 15);
+  num_obs_max_ = _private_nh.param("num_obs_max", 20);
+  num_obs_min_ = _private_nh.param("num_obs_min", 20);
+  radius_obs_max_ = _private_nh.param("radius_obs_max", 2.0);
+  radius_obs_min_ = _private_nh.param("radius_obs_min", 0.25);
   start_goal_.resize(2);
   start_goal_[0].x = 0;
   start_goal_[0].y = -target_distance_ / 2;
@@ -53,89 +53,153 @@ Simulator::Simulator() {
   laser_scan_publisher_ =
       _nh.advertise<sensor_msgs::LaserScan>("laser_scan", 10);
 
-  // // Servicer
+  // Servicer
   // reset_map_server_ =
   //     _nh.advertiseService("reset_map", &Simulator::ResetMap, this);
-  // set_uav_pose_server_ =
-  //     _nh.advertiseService("set_uav_pose", &Simulator::SetUAVPose, this);
   // step_server_ = _nh.advertiseService("step", &Simulator::Step, this);
   // get_obs_server_ = _nh.advertiseService("get_obstacle", &Simulator::GetObstacle, this);
   // set_goals_server_ = _nh.advertiseService("set_goals", &Simulator::SetGoals, this);
   // add_obs_server_ = _nh.advertiseService("add_obstacle", &Simulator::AddObstacleCB, this);
 
-  // // Timer
-  // mainloop_timer_ =
-  //     _nh.createTimer(ros::Duration(0.01), &Simulator::MainLoopCB, this);
+  // Timer
+  mainloop_timer_ =
+      _nh.createTimer(ros::Duration(0.01), &Simulator::MainLoopCB, this);
 }
 
-// void Simulator::MainLoopCB(const ros::TimerEvent &event) {
-//   //
+void Simulator::MainLoopCB(const ros::TimerEvent &event) {
+  //
 
-//   // send uav pose
-//   geometry_msgs::TransformStamped _tf_msg;
-//   _tf_msg.header.frame_id = "map";
-//   _tf_msg.header.stamp = ros::Time::now();
-//   _tf_msg.child_frame_id = "base_link";
-//   _tf_msg.transform.translation.x = state_.pose.position.x;
-//   _tf_msg.transform.translation.y = state_.pose.position.y;
-//   _tf_msg.transform.translation.z = state_.pose.position.z;
-//   _tf_msg.transform.rotation.x = state_.pose.orientation.x;
-//   _tf_msg.transform.rotation.y = state_.pose.orientation.y;
-//   _tf_msg.transform.rotation.z = state_.pose.orientation.z;
-//   _tf_msg.transform.rotation.w = state_.pose.orientation.w;
-//   broadcaster_.sendTransform(_tf_msg);
+  // send uav pose
+  geometry_msgs::TransformStamped _tf_msg;
+  _tf_msg.header.frame_id = "map";
+  _tf_msg.header.stamp = ros::Time::now();
+  _tf_msg.child_frame_id = "base_link";
+  _tf_msg.transform.translation.x = state_.pose.position.x;
+  _tf_msg.transform.translation.y = state_.pose.position.y;
+  _tf_msg.transform.translation.z = state_.pose.position.z;
+  _tf_msg.transform.rotation.x = state_.pose.orientation.x;
+  _tf_msg.transform.rotation.y = state_.pose.orientation.y;
+  _tf_msg.transform.rotation.z = state_.pose.orientation.z;
+  _tf_msg.transform.rotation.w = state_.pose.orientation.w;
+  broadcaster_.sendTransform(_tf_msg);
+  // update local goals & display
+  UpdateLocalGoals();
+  // update state
+  UpdateDistanceAngleInfo();
+  // send laser scan & display
+  UpdateLaserScan();
+}
 
-//   // update state
-//   UpdateDistanceInfo();
-//   // send laser scan
-//   UpdateLaserScan();
-//   laser_scan_publisher_.publish(state_.scan);
-// }
-// void Simulator::UpdateDistanceInfo() {
-//   int32_t _goal_num = local_goals_.size();
-//   state_.target_distance.clear();
-//   state_.target_distance.clear();
-//   for (int32_t i = 0; i < _goal_num; i++) {
-//     state_.target_distance.push_back(
-//         std::sqrt(pow(state_.pose.position.x - local_goals_[i].x, 2.0) +
-//                   pow(state_.pose.position.y - local_goals_[i].y, 2.0)));
-//     double _angle_uav_target = std::atan2(state_.pose.position.y - local_goals_[i].y,
-//                                           state_.pose.position.x - local_goals_[i].x);
-//     double _angle_uav = tf2::getYaw(state_.pose.orientation);
-//     state_.target_angle.push_back(
-//         angles::shortest_angular_distance(_angle_uav, _angle_uav_target));
-//   }
-// }
+//////////////////// display //////////////////
+
+//////////////////// update //////////////////
+bool Simulator::UpdateLocalGoals() {
+  if (global_path_.poses.empty()) {
+    return false;
+  }
+  // TODO
+}
+bool Simulator::UpdateDistanceAngleInfo() {
+  int32_t _goal_num = local_goals_.size();
+  state_.target_distance.clear();
+  state_.target_distance.clear();
+  for (int32_t i = 0; i < _goal_num; i++) {
+    state_.target_distance.push_back(
+        std::sqrt(pow(state_.pose.position.x - local_goals_[i].x, 2.0) +
+                  pow(state_.pose.position.y - local_goals_[i].y, 2.0)));
+    double _angle_uav_target = std::atan2(state_.pose.position.y - local_goals_[i].y,
+                                          state_.pose.position.x - local_goals_[i].x);
+    double _angle_uav = tf2::getYaw(state_.pose.orientation);
+    state_.target_angle.push_back(
+        angles::shortest_angular_distance(_angle_uav, _angle_uav_target));
+  }
+}
+bool Simulator::UpdateLaserScan() {
+  //
+  sensor_msgs::LaserScan _ls_msg;
+  _ls_msg.angle_max = angle_max_;
+  _ls_msg.angle_min = angle_min_;
+  _ls_msg.angle_increment = (angle_max_ - angle_min_) / (num_laser_ - 1);
+  _ls_msg.header.frame_id = "laser_scan";
+  _ls_msg.header.stamp = ros::Time::now();
+  _ls_msg.range_max = range_max_;
+  _ls_msg.range_min = range_min_;
+  _ls_msg.ranges.clear();
+  _ls_msg.intensities.clear();
+  _ls_msg.time_increment = 0.01 / num_laser_;
+  _ls_msg.scan_time = 0.01;
+  //
+  double _angle_base = tf2::getYaw(state_.pose.orientation);
+  _angle_base += M_PI_2 + angle_min_;
+  for (int32_t i = 0; i < num_laser_; i++) {
+    // update range
+    double _angle = _angle_base + i * _ls_msg.angle_increment;
+    geometry_msgs::Point _outpoint;
+    _outpoint.x = range_max_;
+    _outpoint.y = 0;
+    Rotate(_angle, _outpoint);
+    Translate(state_.pose.position, _outpoint);
+    double _range_distance = DBL_MAX;
+    geometry_msgs::Point _cross_point;
+    for (int32_t i = 0; i < pos_obs_.size(); i++) {
+      if (LineCircleShortestCrossPoint(pos_obs_[i], radius_obs_[i],
+                                       state_.pose.position, _outpoint,
+                                       _cross_point)) {
+        //
+        double _range_distance_t = Distance(state_.pose.position, _cross_point);
+        if (_range_distance_t < _range_distance) {
+          _range_distance = _range_distance_t;
+        }
+      }
+    }
+    for (int32_t i = 0; i < pos_obs_extra_.size(); i++) {
+      if (LineCircleShortestCrossPoint(pos_obs_extra_[i], radius_obs_extra_[i],
+                                       state_.pose.position, _outpoint,
+                                       _cross_point)) {
+        //
+        double _range_distance_t = Distance(state_.pose.position, _cross_point);
+        if (_range_distance_t < _range_distance) {
+          _range_distance = _range_distance_t;
+        }
+      }
+    }
+    if (_range_distance > range_max_) {
+      _range_distance = range_max_ - 0.1;
+    }
+    if (_range_distance < range_min_) {
+      _range_distance = range_min_;
+    }
+    _ls_msg.ranges.push_back(_range_distance);
+    // update intensity
+    _ls_msg.intensities.push_back(99999);
+  }
+  state_.scan = _ls_msg;
+  // visualize
+  laser_scan_publisher_.publish(state_.scan);
+  return true;
+}
+
 // bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req,
 //                          uav_simulator::ResetMap::Response &resp) {
 //   //
-//   // update parameters
-//   crash_limit_ = req.param.crash_limit;
-//   arrive_limit_ = req.param.arrive_limit;
-//   angle_max_ = req.sparam.angle_max;
-//   angle_min_ = req.sparam.angle_min;
-//   range_max_ = req.sparam.range_max;
-//   range_min_ = req.sparam.range_min;
-//   num_laser_ = req.sparam.num_laser;
-//   intergrate_dt_ = req.param.intergrate_dt;
-//   accelerate_rate_ = req.param.accelerate_rate;
-//   target_distance_ = req.param.target_distance;
-//   safe_radius_ = req.param.safe_radius;
-//   length_x_ = req.param.length_x;
-//   length_y_ = req.param.length_y;
-//   num_obs_max_ = req.param.num_obs_max;
-//   num_obs_min_ = req.param.num_obs_min;
-//   radius_obs_max_ = req.param.radius_obs_max;
-//   radius_obs_min_ = req.param.radius_obs_min;
-//   // update start and goal position
-//   start_goal_[0].x = 0;
-//   start_goal_[0].y = -target_distance_ / 2;
-//   start_goal_[0].z = flight_height_;
-//   start_goal_[1].x = 0;
-//   start_goal_[1].y = target_distance_ / 2;
-//   start_goal_[1].z = flight_height_;
-
-//   ResetMapAndDisplay();
+//   // clear all obstacles
+//   ClearAllMarkers();
+//   // reset obstacles & display
+//   ResetObstacles();
+//   DisplayObstacles();
+//   // get global path & display
+//   UpdateGlobalPath();
+//   DisplayGlobalPath();
+//   // reset extra obstacles & display
+//   ResetObstaclesExtra();
+//   DisplayObstaclesExtra();
+//   // update local goals & display
+//   UpdateLocalGoals();
+//   DisplayLocalGoals();
+//   // update uav state
+//   UpdateDistanceAngleInfo();
+//   // display start-goal
+//   DisplayStartGoal();
 
 //   ros::Duration(0.5).sleep();
 
@@ -144,7 +208,6 @@ Simulator::Simulator() {
 
 //   return true;
 // }
-
 // bool Simulator::ResetMapAndDisplay() {
 //   //
 //   // initialize marker style
@@ -272,68 +335,7 @@ Simulator::Simulator() {
 //   laser_scan_publisher_.publish(state_.scan);
 // }
 
-// bool Simulator::UpdateLaserScan() {
-//   //
-//   sensor_msgs::LaserScan _ls_msg;
-//   _ls_msg.angle_max = angle_max_;
-//   _ls_msg.angle_min = angle_min_;
-//   _ls_msg.angle_increment = (angle_max_ - angle_min_) / (num_laser_ - 1);
-//   _ls_msg.header.frame_id = "laser_scan";
-//   _ls_msg.header.stamp = ros::Time::now();
-//   _ls_msg.range_max = range_max_;
-//   _ls_msg.range_min = range_min_;
-//   _ls_msg.ranges.clear();
-//   _ls_msg.intensities.clear();
-//   _ls_msg.time_increment = 0.01 / num_laser_;
-//   _ls_msg.scan_time = 0.01;
-//   //
-//   double _angle_base = tf2::getYaw(state_.pose.orientation);
-//   _angle_base += M_PI_2 + angle_min_;
-//   for (int32_t i = 0; i < num_laser_; i++) {
-//     // update range
-//     double _angle = _angle_base + i * _ls_msg.angle_increment;
-//     geometry_msgs::Point _outpoint;
-//     _outpoint.x = range_max_;
-//     _outpoint.y = 0;
-//     Rotate(_angle, _outpoint);
-//     Translate(state_.pose.position, _outpoint);
-//     double _range_distance = DBL_MAX;
-//     geometry_msgs::Point _cross_point;
-//     for (int32_t i = 0; i < pos_obs_.size(); i++) {
-//       if (LineCircleShortestCrossPoint(pos_obs_[i], radius_obs_[i],
-//                                        state_.pose.position, _outpoint,
-//                                        _cross_point)) {
-//         //
-//         double _range_distance_t = Distance(state_.pose.position, _cross_point);
-//         if (_range_distance_t < _range_distance) {
-//           _range_distance = _range_distance_t;
-//         }
-//       }
-//     }
-//     for (int32_t i = 0; i < pos_obs_extra_.size(); i++) {
-//       if (LineCircleShortestCrossPoint(pos_obs_extra_[i], radius_obs_extra_[i],
-//                                        state_.pose.position, _outpoint,
-//                                        _cross_point)) {
-//         //
-//         double _range_distance_t = Distance(state_.pose.position, _cross_point);
-//         if (_range_distance_t < _range_distance) {
-//           _range_distance = _range_distance_t;
-//         }
-//       }
-//     }
-//     if (_range_distance > range_max_) {
-//       _range_distance = range_max_ - 0.1;
-//     }
-//     if (_range_distance < range_min_) {
-//       _range_distance = range_min_;
-//     }
-//     _ls_msg.ranges.push_back(_range_distance);
-//     // update intensity
-//     _ls_msg.intensities.push_back(99999);
-//   }
-//   state_.scan = _ls_msg;
-//   return true;
-// }
+
 // bool Simulator::SetUAVPose(uav_simulator::SetUavPose::Request &req,
 //                            uav_simulator::SetUavPose::Response &resp) {
 //   //
