@@ -7,6 +7,8 @@ Simulator::Simulator() {
   ros::NodeHandle _private_nh;
 
   // uav state
+  max_linear_velocity_ = _private_nh.param("max_linear_velocity", 1.0);
+  max_angular_velocity_ = _private_nh.param("max_angular_velocity", 1.0);
   crash_limit_ = _private_nh.param("crash_limit", 0.2);
   arrive_limit_ = _private_nh.param("arrive_limit", 0.2);
   angle_max_ = _private_nh.param("angle_max", 2 * M_PI / 3);
@@ -22,13 +24,18 @@ Simulator::Simulator() {
 
   // grid map
   target_distance_ = _private_nh.param("target_distance", 8.0);
-  safe_radius_ = _private_nh.param("safe_radius", 0.25);
+  safe_radius_ = _private_nh.param("safe_radius", 0.5);
   length_x_ = _private_nh.param("length_x", 15);
   length_y_ = _private_nh.param("length_y", 15);
   num_obs_max_ = _private_nh.param("num_obs_max", 20);
   num_obs_min_ = _private_nh.param("num_obs_min", 20);
   radius_obs_max_ = _private_nh.param("radius_obs_max", 2.0);
   radius_obs_min_ = _private_nh.param("radius_obs_min", 0.25);
+  num_obs_max_extra_ = _private_nh.param("num_obs_max_extra", 5);
+  num_obs_min_extra_ = _private_nh.param("num_obs_min_extra", 2);
+  radius_obs_max_extra_ = _private_nh.param("radius_obs_max_extra", 0.3);
+  radius_obs_min_extra_ = _private_nh.param("radius_obs_min_extra", 0.25);
+  vibration_distance_extra_ = _private_nh.param("vibration_distance_extra", 0.5);
   start_goal_.resize(2);
   start_goal_[0].x = 0;
   start_goal_[0].y = -target_distance_ / 2;
@@ -37,9 +44,12 @@ Simulator::Simulator() {
   start_goal_[1].y = target_distance_ / 2;
   start_goal_[1].z = flight_height_;
 
+  // path
+  global_path_.header.frame_id = "map";
+
   // Subscriber
-  // rviz_goal_sub_ = _nh.subscribe<geometry_msgs::PoseStamped>(
-  //     "/move_base_simple/goal", 1, &Simulator::RvizGoalCB, this);
+  rviz_goal_sub_ = _nh.subscribe<geometry_msgs::PoseStamped>(
+      "/move_base_simple/goal", 1, &Simulator::RvizGoalCB, this);
 
   // Publisher
   visual_obs_publisher_ =
@@ -52,10 +62,14 @@ Simulator::Simulator() {
       _nh.advertise<visualization_msgs::MarkerArray>("start_goal", 10);
   laser_scan_publisher_ =
       _nh.advertise<sensor_msgs::LaserScan>("laser_scan", 10);
+  visual_path_publisher_ = 
+      _nh.advertise<nav_msgs::Path>("global_path", 1);
+  visual_waypoints_publisher_ = 
+      _nh.advertise<visualization_msgs::MarkerArray>("waypoints", 1);
 
   // Servicer
-  // reset_map_server_ =
-  //     _nh.advertiseService("reset_map", &Simulator::ResetMap, this);
+  reset_map_server_ =
+      _nh.advertiseService("reset_map", &Simulator::ResetMap, this);
   // step_server_ = _nh.advertiseService("step", &Simulator::Step, this);
   // get_obs_server_ = _nh.advertiseService("get_obstacle", &Simulator::GetObstacle, this);
   // set_goals_server_ = _nh.advertiseService("set_goals", &Simulator::SetGoals, this);
@@ -178,36 +192,328 @@ bool Simulator::UpdateLaserScan() {
   laser_scan_publisher_.publish(state_.scan);
   return true;
 }
+bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req,
+                         uav_simulator::ResetMap::Response &resp) {
+  //
+//  reset uav pose
+  state_.pose.position = start_goal_[0];
+  std::uniform_real_distribution<double> _yaw_distribution(-M_PI_2, M_PI_2);
+  std::default_random_engine _e(time(NULL));
+  double _yaw = _yaw_distribution(_e);
+  tf2::Quaternion _qtn;
+  _qtn.setRPY(0, 0, _yaw);
+  state_.pose.orientation.x = _qtn.x();
+  state_.pose.orientation.y = _qtn.y();
+  state_.pose.orientation.z = _qtn.z();
+  state_.pose.orientation.w = _qtn.w();
+  // reset obstacles & display
+  ResetObstacles();
+  // get global path & display
+  UpdateGlobalPath();
+  // reset extra obstacles & display
+  ResetObstaclesExtra();
+  // update local goals & display
+  UpdateLocalGoals();
+  // update uav state
+  UpdateDistanceAngleInfo();
+  // display start-goal
+  DisplayStartGoal();
 
-// bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req,
-//                          uav_simulator::ResetMap::Response &resp) {
-//   //
-//   // clear all obstacles
-//   ClearAllMarkers();
-//   // reset obstacles & display
-//   ResetObstacles();
-//   DisplayObstacles();
-//   // get global path & display
-//   UpdateGlobalPath();
-//   DisplayGlobalPath();
-//   // reset extra obstacles & display
-//   ResetObstaclesExtra();
-//   DisplayObstaclesExtra();
-//   // update local goals & display
-//   UpdateLocalGoals();
-//   DisplayLocalGoals();
-//   // update uav state
-//   UpdateDistanceAngleInfo();
-//   // display start-goal
-//   DisplayStartGoal();
+  ros::Duration(0.5).sleep();
 
-//   ros::Duration(0.5).sleep();
+  resp.state = state_;
+  resp.state_vector = GetStateVector(state_);
+  resp.success = true;
 
-//   resp.state = state_;
-//   resp.success = true;
+  return true;
+}
+bool Simulator::ResetObstacles() {
+  //
+  // initialize marker style
+  visualization_msgs::Marker _mk_msg;
+  _mk_msg.header.frame_id = "map";
+  _mk_msg.header.stamp = ros::Time::now();
+  _mk_msg.type = visualization_msgs::Marker::CYLINDER;
+  _mk_msg.pose.orientation.w = 1;
+  // delete  obstalces
+  visualization_msgs::MarkerArray _mk_arr_msg;
+  _mk_msg.action = visualization_msgs::Marker::DELETE;
+  for (int32_t i = 0; i < pos_obs_.size(); i++) {
+    _mk_msg.id = i;
+    _mk_arr_msg.markers.push_back(_mk_msg);
+  }
+  visual_obs_publisher_.publish(_mk_arr_msg);
+  pos_obs_.clear();
+  radius_obs_.clear();
+  // get obstacle number
+  int32_t _num_obs = num_obs_min_ + rand() % (num_obs_max_ - num_obs_min_ + 1);
+  // generate new obstacles
+  std::uniform_real_distribution<double> _x_distribution(-length_x_ / 2,
+                                                         length_x_ / 2);
+  std::uniform_real_distribution<double> _y_distribution(-length_y_ / 2,
+                                                         length_y_ / 2);
+  std::uniform_real_distribution<double> _radius_distribution(radius_obs_min_,
+                                                              radius_obs_max_);
+  std::default_random_engine _e(time(NULL));
+  for (int32_t i = 0; i < _num_obs; i++) {
+    // randomize position and size
+    geometry_msgs::Point _point;
+    _point.z = 0.5;
+    double _radius;
+    while (true) {
+      // obstacle should keep away from safe areas
+      _point.x = _x_distribution(_e);
+      _point.y = _y_distribution(_e);
+      _radius = _radius_distribution(_e);
+      double _dist_start = Distance(_point, start_goal_[0]);
+      double _dist_goal = Distance(_point, start_goal_[1]);
+      // obstacle should keep away from the start-goal line
+      // if (std::fabs(_point.y) < target_distance_ / 2 &&
+      //     std::fabs(_point.x) < _radius)
+      //   continue;
+      if (_dist_start > (safe_radius_ + _radius) &&
+          _dist_goal > (safe_radius_ + _radius))
+        break;
+    }
+    pos_obs_.push_back(_point);
+    radius_obs_.push_back(_radius);
+  }
+  // visualize obstacles
+  _mk_arr_msg.markers.clear();
+  _mk_msg.color.r = 1.0;
+  _mk_msg.color.g = 1.0;
+  _mk_msg.color.b = 1.0;
+  _mk_msg.color.a = 0.9;
+  _mk_msg.action = visualization_msgs::Marker::ADD;
+  _mk_msg.scale.z = 1;
+  for (int32_t i = 0; i < _num_obs; i++) {
+    _mk_msg.pose.position = pos_obs_[i];
+    _mk_msg.id = i;
+    _mk_msg.scale.x = radius_obs_[i] * 2;
+    _mk_msg.scale.y = radius_obs_[i] * 2;
+    _mk_arr_msg.markers.push_back(_mk_msg);
+  }
+  visual_obs_publisher_.publish(_mk_arr_msg);
 
-//   return true;
-// }
+  return true;
+}
+bool Simulator::ResetObstaclesExtra() {
+  //
+  // initialize marker style
+  visualization_msgs::Marker _mk_msg;
+  _mk_msg.header.frame_id = "map";
+  _mk_msg.header.stamp = ros::Time::now();
+  _mk_msg.type = visualization_msgs::Marker::CYLINDER;
+  _mk_msg.pose.orientation.w = 1;
+  // delete  obstalces
+  visualization_msgs::MarkerArray _mk_arr_msg;
+  _mk_msg.action = visualization_msgs::Marker::DELETE;
+  for (int32_t i = 0; i < pos_obs_extra_.size(); i++) {
+    _mk_msg.id = i;
+    _mk_arr_msg.markers.push_back(_mk_msg);
+  }
+  visual_obs_extra_publisher_.publish(_mk_arr_msg);
+  pos_obs_extra_.clear();
+  radius_obs_extra_.clear();
+// get obstacle number
+  int32_t _num_obs = num_obs_min_extra_ +
+                     rand() % (num_obs_max_extra_ - num_obs_min_extra_ + 1);
+  // generate new obstacles
+  std::uniform_real_distribution<double> _vibration_distribution(-vibration_distance_extra_,
+                                                         vibration_distance_extra_);
+  std::uniform_real_distribution<double> _radius_distribution(radius_obs_min_extra_,
+                                                              radius_obs_max_extra_);
+  std::default_random_engine _e(time(NULL));
+  for (int32_t i = 0; i < _num_obs; i++) {
+    geometry_msgs::Point _point;
+    _point.z = 0.5;
+    double _radius;
+    while (true) {
+      // select random global path waypoints
+      int32_t _idx  = rand() % global_path_interpolate_.poses.size();
+      // obstacle should keep away from safe areas
+      _point.x = global_path_interpolate_.poses[_idx].pose.position.x +
+                 _vibration_distribution(_e);
+      _point.y = global_path_interpolate_.poses[_idx].pose.position.y +
+                 _vibration_distribution(_e);
+      _radius = _radius_distribution(_e);
+      double _dist_start = Distance(_point, start_goal_[0]);
+      double _dist_goal = Distance(_point, start_goal_[1]);
+      // obstacle should keep away from the start-goal line
+      // if (std::fabs(_point.y) < target_distance_ / 2 &&
+      //     std::fabs(_point.x) < _radius)
+      //   continue;
+      if (_dist_start > (safe_radius_ + _radius) &&
+          _dist_goal > (safe_radius_ + _radius))
+        break;
+    }
+    pos_obs_extra_.push_back(_point);
+    radius_obs_extra_.push_back(_radius);
+  }
+
+  // visualize obstacles
+  _mk_arr_msg.markers.clear();
+  _mk_msg.color.r = 0.0;
+  _mk_msg.color.g = 0.0;
+  _mk_msg.color.b = 1.0;
+  _mk_msg.color.a = 0.9;
+  _mk_msg.action = visualization_msgs::Marker::ADD;
+  _mk_msg.scale.z = 1;
+  for (int32_t i = 0; i < _num_obs; i++) {
+    _mk_msg.pose.position = pos_obs_extra_[i];
+    _mk_msg.id = i;
+    _mk_msg.scale.x = radius_obs_extra_[i] * 2;
+    _mk_msg.scale.y = radius_obs_extra_[i] * 2;
+    _mk_arr_msg.markers.push_back(_mk_msg);
+  }
+  visual_obs_extra_publisher_.publish(_mk_arr_msg);
+
+  return true;
+}
+bool Simulator::UpdateGlobalPath() {
+  //
+  // delete markers
+
+  // construct the state space we are planning in
+  auto _space(std::make_shared<ob::RealVectorStateSpace>(2));
+  // set the bounds for the R^2 part of SE(2)
+  ob::RealVectorBounds _bounds(2);
+  _bounds.setHigh(0, length_x_/2);
+  _bounds.setHigh(1, length_y_/2);
+  _bounds.setLow(0, -length_x_/2);
+  _bounds.setLow(1, -length_y_/2);
+  _space->setBounds(_bounds);
+  // construct an instance of  space information from this state space
+  auto _si(std::make_shared<ob::SpaceInformation>(_space));
+  // set state validity checking for this space
+  auto IsStateValid = [&](const ob::State *state) -> bool {
+    //
+    // get current point
+    geometry_msgs::Point _cur_point;
+    const ob::RealVectorStateSpace::StateType *_state2D =
+        state->as<ob::RealVectorStateSpace::StateType>();
+    _cur_point.x = (*_state2D)[0];
+    _cur_point.y = (*_state2D)[1];
+    for (int32_t i = 0; i < pos_obs_.size(); i++) {
+      if (Distance(pos_obs_[i], _cur_point) < radius_obs_[i] + 0.5) {
+        return false;
+      }
+    }
+    return true;
+  };
+  _si->setStateValidityChecker(IsStateValid);
+  // create a start state
+  ob::ScopedState<> _start(_space);
+  _start[0] = start_goal_[0].x;
+  _start[1] = start_goal_[0].y;
+  // create a start state
+  ob::ScopedState<> _goal(_space);
+  _goal[0] = start_goal_[1].x;
+  _goal[1] = start_goal_[1].y;
+  // create a problem instance
+  auto _pdef(std::make_shared<ob::ProblemDefinition>(_si));
+    // set the start and goal states
+  _pdef->setStartAndGoalStates(_start, _goal);
+  // create a planner for the defined space
+  auto _planner(std::make_shared<og::RRTstar>(_si));
+  // set the problem we are trying to solve for the planner
+  _planner->setProblemDefinition(_pdef);
+  // perform setup steps for the planner
+  _planner->setup();
+  // print the settings for this space
+  _si->printSettings(std::cout);
+  // print the problem settings
+  _pdef->print(std::cout);
+  // attempt to solve the problem within one second of planning time
+  ob::PlannerStatus _solved = _planner->ob::Planner::solve(0.5);
+
+  if (_solved) {
+    og::PathGeometric *_path =
+        _pdef->getSolutionPath()->as<og::PathGeometric>();
+    std::cout << "Found solution:" << std::endl;
+    // print the path to screen
+    _path->print(std::cout);
+    // construct response msg
+    global_path_.poses.clear();
+    std::vector<geometry_msgs::Point> _points;
+    for (int32_t i = 0; i < _path->getStateCount(); i++) {
+      const ob::RealVectorStateSpace::StateType *state =
+          _path->getState(i)->as<ob::RealVectorStateSpace::StateType>();
+      geometry_msgs::PoseStamped _ps_msg;
+      _ps_msg.pose.position.x = (*state)[0];
+      _ps_msg.pose.position.y = (*state)[1];
+      global_path_.poses.push_back(_ps_msg);
+    }
+  } else {
+    std::cout << "No solution found" << std::endl;
+  }
+  // visualize global path
+  if (_solved) {
+    global_path_.header.stamp = ros::Time::now();
+    visual_path_publisher_.publish(global_path_);
+    global_path_interpolate_ = global_path_;
+    Interpolate(global_path_interpolate_, 0.1);
+  }
+
+  return true;
+}
+bool Simulator::DisplayStartGoal() {
+  //
+    // initialize marker style
+  visualization_msgs::Marker _mk_msg;
+  _mk_msg.header.frame_id = "map";
+  _mk_msg.header.stamp = ros::Time::now();
+  _mk_msg.type = visualization_msgs::Marker::CYLINDER;
+  _mk_msg.pose.orientation.w = 1;
+  // visualize start-goal
+  visualization_msgs::MarkerArray _mk_arr_msg;
+  _mk_msg.color.r = 1.0;
+  _mk_msg.color.g = 0.0;
+  _mk_msg.color.b = 0.0;
+  _mk_msg.color.a = 0.9;
+  _mk_msg.type = visualization_msgs::Marker::SPHERE;
+  _mk_msg.scale.x = 0.2;
+  _mk_msg.scale.y = 0.2;
+  _mk_msg.scale.z = 0.2;
+  _mk_msg.pose.position = start_goal_[0];
+  _mk_msg.id = 0;
+  _mk_arr_msg.markers.push_back(_mk_msg);
+  _mk_msg.pose.position = start_goal_[1];
+  _mk_msg.id = 1;
+  _mk_arr_msg.markers.push_back(_mk_msg);
+  visual_start_goal_publisher_.publish(_mk_arr_msg);
+
+  return true;
+}
+std::vector<double> Simulator::GetStateVector(const uav_simulator::State state_msg) {
+  //
+  std::vector<double> _result;
+  // add obstacle info
+  for (int32_t i = 0; i < state_msg.scan.ranges.size(); i++) {
+    double _interval_length =
+        state_msg.scan.range_max - state_msg.scan.range_min;
+    _result.push_back((state_msg.scan.ranges[i] - _interval_length / 2) /
+                      (_interval_length / 2));
+  }
+  // add velocity info
+  double _linear_velocity = std::sqrt(std::pow(state_msg.twist.linear.x, 2.0) +
+                                      std::pow(state_msg.twist.linear.y, 2.0));
+  _linear_velocity =
+      (_linear_velocity - max_linear_velocity_ / 2) / (max_linear_velocity_ / 2);
+  _result.push_back(_linear_velocity);
+  double _angle_velocity = state_msg.twist.angular.z / max_angular_velocity_;
+  _result.push_back(_angle_velocity);
+  // add target info
+  for (int32_t i = 0; i < local_goals_.size(); i++) {
+    double _target_distance =
+        (state_msg.target_distance[i] - 2.5) / 2.5;
+    _result.push_back(_target_distance);
+    double _target_angle = state_msg.target_angle[i] / M_PI;
+  _result.push_back(_target_angle);
+  }
+
+  return _result;
+}
 // bool Simulator::ResetMapAndDisplay() {
 //   //
 //   // initialize marker style
@@ -449,36 +755,36 @@ bool Simulator::UpdateLaserScan() {
 //   resp.success = true;
 //   return true;
 // }
-// void Simulator::RvizGoalCB(const geometry_msgs::PoseStamped::ConstPtr &msg_p) {
-//   //
-//   visualization_msgs::MarkerArray _mk_arr_msg;
-//   visualization_msgs::Marker _mk_msg;
-//   _mk_msg.header.frame_id = "map";
-//   _mk_msg.header.stamp = ros::Time::now();
-//   _mk_msg.type = visualization_msgs::Marker::CYLINDER;
-//   _mk_msg.pose.orientation.w = 1;
-//   _mk_msg.color.r = 0.0;
-//   _mk_msg.color.g = 0.0;
-//   _mk_msg.color.b = 1.0;
-//   _mk_msg.color.a = 0.9;
-//   _mk_msg.action = visualization_msgs::Marker::ADD;
-//   _mk_msg.scale.x = 0.25 * 2;
-//   _mk_msg.scale.y = 0.25 * 2;
-//   _mk_msg.scale.z = 1.0;
-//   _mk_msg.pose.position.x = msg_p->pose.position.x;
-//   _mk_msg.pose.position.y = msg_p->pose.position.y;
-//   _mk_msg.pose.position.z = 0.5;
-//   _mk_msg.id = pos_obs_extra_.size();
-//   _mk_arr_msg.markers.push_back(_mk_msg);
-//   visual_obs_extra_publisher_.publish(_mk_arr_msg);
+void Simulator::RvizGoalCB(const geometry_msgs::PoseStamped::ConstPtr &msg_p) {
+  //
+  visualization_msgs::MarkerArray _mk_arr_msg;
+  visualization_msgs::Marker _mk_msg;
+  _mk_msg.header.frame_id = "map";
+  _mk_msg.header.stamp = ros::Time::now();
+  _mk_msg.type = visualization_msgs::Marker::CYLINDER;
+  _mk_msg.pose.orientation.w = 1;
+  _mk_msg.color.r = 0.0;
+  _mk_msg.color.g = 0.0;
+  _mk_msg.color.b = 1.0;
+  _mk_msg.color.a = 0.9;
+  _mk_msg.action = visualization_msgs::Marker::ADD;
+  _mk_msg.scale.x = 0.25 * 2;
+  _mk_msg.scale.y = 0.25 * 2;
+  _mk_msg.scale.z = 1.0;
+  _mk_msg.pose.position.x = msg_p->pose.position.x;
+  _mk_msg.pose.position.y = msg_p->pose.position.y;
+  _mk_msg.pose.position.z = 0.5;
+  _mk_msg.id = pos_obs_extra_.size();
+  _mk_arr_msg.markers.push_back(_mk_msg);
+  visual_obs_extra_publisher_.publish(_mk_arr_msg);
 
-//   geometry_msgs::Point _point;
-//   _point.x = msg_p->pose.position.x;
-//   _point.y = msg_p->pose.position.y;
-//   _point.z = 0.5;
-//   pos_obs_extra_.push_back(_point);
-//   radius_obs_extra_.push_back(0.25);
-// }
+  geometry_msgs::Point _point;
+  _point.x = msg_p->pose.position.x;
+  _point.y = msg_p->pose.position.y;
+  _point.z = 0.5;
+  pos_obs_extra_.push_back(_point);
+  radius_obs_extra_.push_back(0.25);
+}
 // void Simulator::UpdateModel(uav_simulator::State &state,
 //                             const uav_simulator::Control control,
 //                             const double duration) {

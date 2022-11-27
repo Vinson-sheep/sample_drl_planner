@@ -29,6 +29,8 @@
 #include <ompl/geometric/planners/rrt/RRTstar.h>
 
 using std::vector;
+namespace ob = ompl::base;
+namespace og = ompl::geometric;
 
 class Simulator {
  public:
@@ -37,6 +39,8 @@ class Simulator {
   //
  private:
   // uav state
+  double max_linear_velocity_;
+  double max_angular_velocity_;
   double crash_limit_;
   double arrive_limit_;
   double angle_max_;
@@ -59,6 +63,11 @@ class Simulator {
   int32_t num_obs_min_;
   double radius_obs_max_;
   double radius_obs_min_;
+  int32_t num_obs_max_extra_;
+  int32_t num_obs_min_extra_;
+  double radius_obs_max_extra_;
+  double radius_obs_min_extra_;
+  double vibration_distance_extra_;
   vector<geometry_msgs::Point> pos_obs_;
   vector<double> radius_obs_;
   vector<geometry_msgs::Point> pos_obs_extra_;
@@ -68,6 +77,7 @@ class Simulator {
 
   // path
   nav_msgs::Path global_path_;
+  nav_msgs::Path global_path_interpolate_;
 
   // Subscriber
   ros::Subscriber rviz_goal_sub_;
@@ -78,7 +88,12 @@ class Simulator {
   ros::Publisher visual_local_goals_publisher_;
   ros::Publisher visual_start_goal_publisher_;
   ros::Publisher laser_scan_publisher_;
+  ros::Publisher visual_path_publisher_;
+  ros::Publisher visual_waypoints_publisher_;
+  ros::Publisher state_publisher_;
+  ros::Publisher reward_publisher_;
   tf2_ros::TransformBroadcaster broadcaster_;
+  
 
   // Servicer
   ros::ServiceServer add_obs_server_;
@@ -107,8 +122,10 @@ class Simulator {
   bool UpdateDistanceAngleInfo();
   bool UpdateLaserScan();
   bool UpdateLocalGoals();
+  bool DisplayStartGoal();
 
-  bool ResetMapAndDisplay();
+  // tool
+  std::vector<double> GetStateVector(const uav_simulator::State state_msg);
 
   // model
   void UpdateModel(uav_simulator::State &state,

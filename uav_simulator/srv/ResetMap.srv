@@ -1,4 +1,4 @@
 ---
 uav_simulator/State state
-float32[] state_vector
+float64[] state_vector
 bool success

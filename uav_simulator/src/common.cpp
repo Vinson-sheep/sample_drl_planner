@@ -111,3 +111,32 @@ bool HomoDirect(const geometry_msgs::Point &line_a_1,
   double _dy_b = line_b_1.y - line_b_2.y;
   return fabs(std::atan2(_dy_a, _dx_a) - std::atan2(_dy_b, _dx_b)) < 10e-5;
 }
+void Interpolate(nav_msgs::Path &path, const double delta_d) {
+  // 
+  int32_t _n = path.poses.size();
+  nav_msgs::Path _path_t;
+  _path_t.header = path.header;
+  _path_t.poses.push_back(path.poses.front());
+  for (int32_t i = 1; i< _n; i++) {
+    double _dist = Distance(path.poses[i-1].pose, path.poses[i].pose);
+    double _dist_count = delta_d;
+    double _theta = atan2(
+        path.poses[i].pose.position.y - path.poses[i - 1].pose.position.y,
+        path.poses[i].pose.position.x - path.poses[i - 1].pose.position.x);
+    while (_dist_count < _dist) {
+      geometry_msgs::Point _point_t;
+      _point_t.x = _dist_count;
+      _point_t.y = 0;
+      _point_t.z = path.poses[i-1].pose.position.z;
+      Rotate(_theta, _point_t);
+      Translate(path.poses[i-1].pose.position, _point_t);
+      geometry_msgs::PoseStamped _pst;
+      _pst.pose.orientation = path.poses[i-1].pose.orientation;
+      _pst.pose.position = _point_t;
+      _path_t.poses.push_back(_pst);
+      _dist_count += delta_d;
+    }
+    _path_t.poses.push_back(path.poses[i]);
+  }
+  path = _path_t;
+}

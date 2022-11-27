@@ -4,6 +4,7 @@
 
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/Pose.h"
+#include "nav_msgs/Path.h"
 
 // tool function
 double Distance(const geometry_msgs::Point &lhs,
@@ -26,5 +27,6 @@ bool HomoDirect(const geometry_msgs::Point &line_a_1,
                 const geometry_msgs::Point &line_a_2,
                 const geometry_msgs::Point &line_b_1,
                 const geometry_msgs::Point &line_b_2);
+void Interpolate(nav_msgs::Path &path, const double delta_d);
 
 #endif /* COMMON_H */
