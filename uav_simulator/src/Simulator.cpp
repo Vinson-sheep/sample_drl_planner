@@ -71,9 +71,8 @@ Simulator::Simulator() {
   reset_map_server_ =
       _nh.advertiseService("reset_map", &Simulator::ResetMap, this);
   step_server_ = _nh.advertiseService("step", &Simulator::Step, this);
-  // get_obs_server_ = _nh.advertiseService("get_obstacle", &Simulator::GetObstacle, this);
-  // set_goals_server_ = _nh.advertiseService("set_goals", &Simulator::SetGoals, this);
-  // add_obs_server_ = _nh.advertiseService("add_obstacle", &Simulator::AddObstacleCB, this);
+  add_obs_server_ =
+      _nh.advertiseService("add_obstacle", &Simulator::AddObstacleCB, this);
 
   // Timer
   mainloop_timer_ =
@@ -665,19 +664,6 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
   resp.success = true;
   return true;
 }
-// bool Simulator::GetObstacle(uav_simulator::GetObstacle::Request &req,
-//                             uav_simulator::GetObstacle::Response &resp) {
-//   //
-//   if (pos_obs_.empty()) {
-//     resp.success = false;
-//   }
-//   else {
-//     resp.data.obstacles_position = pos_obs_;
-//     resp.data.obstacles_radius = radius_obs_;
-//     resp.success = true;
-//   }
-//   return true;
-// }
 // bool Simulator::SetGoals(uav_simulator::SetGoal::Request &req,
 //                uav_simulator::SetGoal::Response &resp) {
 //   //
@@ -719,42 +705,42 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
 //   resp.success = true;
 //   return true;
 // }
-// bool Simulator::AddObstacleCB(uav_simulator::AddObstacle::Request &req,
-//                    uav_simulator::AddObstacle::Response &resp) {
-//   //
-//   visualization_msgs::MarkerArray _mk_arr_msg;
-//   visualization_msgs::Marker _mk_msg;
-//   _mk_msg.header.frame_id = "map";
-//   _mk_msg.header.stamp = ros::Time::now();
-//   _mk_msg.type = visualization_msgs::Marker::CYLINDER;
-//   _mk_msg.pose.orientation.w = 1;
-//   _mk_msg.color.r = 0.0;
-//   _mk_msg.color.g = 0.0;
-//   _mk_msg.color.b = 1.0;
-//   _mk_msg.color.a = 0.9;
-//   _mk_msg.action = visualization_msgs::Marker::ADD;
-//   _mk_msg.scale.x = req.obs_radius * 2;
-//   _mk_msg.scale.y = req.obs_radius * 2;
-//   _mk_msg.scale.z = 1.0;
-//   _mk_msg.pose.position.z = 0.5;
-//   for (int32_t i = 0; i < req.obs_x.size(); i++) {
-//     _mk_msg.pose.position.x = req.obs_x[i];
-//     _mk_msg.pose.position.y = req.obs_y[i];
-//     _mk_msg.id = pos_obs_extra_.size();
-//     _mk_arr_msg.markers.push_back(_mk_msg);
-//       geometry_msgs::Point _point;
-//     _point.x = req.obs_x[i];
-//     _point.y = req.obs_y[i];
-//     _point.z = 0.5;
-//     pos_obs_extra_.push_back(_point);
-//     radius_obs_extra_.push_back(req.obs_radius);
-//   }
+bool Simulator::AddObstacleCB(uav_simulator::AddObstacle::Request &req,
+                   uav_simulator::AddObstacle::Response &resp) {
+  //
+  visualization_msgs::MarkerArray _mk_arr_msg;
+  visualization_msgs::Marker _mk_msg;
+  _mk_msg.header.frame_id = "map";
+  _mk_msg.header.stamp = ros::Time::now();
+  _mk_msg.type = visualization_msgs::Marker::CYLINDER;
+  _mk_msg.pose.orientation.w = 1;
+  _mk_msg.color.r = 0.0;
+  _mk_msg.color.g = 0.0;
+  _mk_msg.color.b = 1.0;
+  _mk_msg.color.a = 0.9;
+  _mk_msg.action = visualization_msgs::Marker::ADD;
+  _mk_msg.scale.x = req.obs_radius * 2;
+  _mk_msg.scale.y = req.obs_radius * 2;
+  _mk_msg.scale.z = 1.0;
+  _mk_msg.pose.position.z = 0.5;
+  for (int32_t i = 0; i < req.obs_x.size(); i++) {
+    _mk_msg.pose.position.x = req.obs_x[i];
+    _mk_msg.pose.position.y = req.obs_y[i];
+    _mk_msg.id = pos_obs_extra_.size();
+    _mk_arr_msg.markers.push_back(_mk_msg);
+      geometry_msgs::Point _point;
+    _point.x = req.obs_x[i];
+    _point.y = req.obs_y[i];
+    _point.z = 0.5;
+    pos_obs_extra_.push_back(_point);
+    radius_obs_extra_.push_back(req.obs_radius);
+  }
 
-//   visual_obs_extra_publisher_.publish(_mk_arr_msg);
+  visual_obs_extra_publisher_.publish(_mk_arr_msg);
 
-//   resp.success = true;
-//   return true;
-// }
+  resp.success = true;
+  return true;
+}
 void Simulator::RvizGoalCB(const geometry_msgs::PoseStamped::ConstPtr &msg_p) {
   //
   visualization_msgs::MarkerArray _mk_arr_msg;
