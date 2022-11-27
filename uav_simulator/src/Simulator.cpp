@@ -70,7 +70,7 @@ Simulator::Simulator() {
   // Servicer
   reset_map_server_ =
       _nh.advertiseService("reset_map", &Simulator::ResetMap, this);
-  // step_server_ = _nh.advertiseService("step", &Simulator::Step, this);
+  step_server_ = _nh.advertiseService("step", &Simulator::Step, this);
   // get_obs_server_ = _nh.advertiseService("get_obstacle", &Simulator::GetObstacle, this);
   // set_goals_server_ = _nh.advertiseService("set_goals", &Simulator::SetGoals, this);
   // add_obs_server_ = _nh.advertiseService("add_obstacle", &Simulator::AddObstacleCB, this);
@@ -649,22 +649,22 @@ std::vector<double> Simulator::GetStateVector(const uav_simulator::State state_m
 //   resp.success = true;
 //   return true;
 // }
-// bool Simulator::Step(uav_simulator::Step::Request &req,
-//                      uav_simulator::Step::Response &resp) {
-//   //
-//   Intergrator(state_, req.control, req.step_time);
-//   resp.state = state_;
-//   // update state
-//   UpdateDistanceInfo();
-//   // send laser scan
-//   UpdateLaserScan();
-//   laser_scan_publisher_.publish(state_.scan);
+bool Simulator::Step(uav_simulator::Step::Request &req,
+                     uav_simulator::Step::Response &resp) {
+  //
+  Intergrator(state_, req.control, req.step_time);
+  resp.state = state_;
+  // update state
+  bool UpdateDistanceAngleInfo();
+  // send laser scan
+  UpdateLaserScan();
+  laser_scan_publisher_.publish(state_.scan);
 
-//   resp.is_crash = IsCrash(state_);
-//   resp.is_arrive = IsArrival(state_);
-//   resp.success = true;
-//   return true;
-// }
+  resp.is_crash = IsCrash(state_);
+  resp.is_arrive = IsArrival(state_);
+  resp.success = true;
+  return true;
+}
 // bool Simulator::GetObstacle(uav_simulator::GetObstacle::Request &req,
 //                             uav_simulator::GetObstacle::Response &resp) {
 //   //
@@ -785,66 +785,66 @@ void Simulator::RvizGoalCB(const geometry_msgs::PoseStamped::ConstPtr &msg_p) {
   pos_obs_extra_.push_back(_point);
   radius_obs_extra_.push_back(0.25);
 }
-// void Simulator::UpdateModel(uav_simulator::State &state,
-//                             const uav_simulator::Control control,
-//                             const double duration) {
-//   //
-//   double _yaw, _pitch, _roll;
-//   tf2::getEulerYPR(state.pose.orientation, _yaw, _pitch, _roll);
-//   // update velicity
-//   double _alpha = duration / intergrate_dt_ * state_update_factor_;
-//   double _cur_linear_velocity = std::sqrt(std::pow(state.twist.linear.x, 2.0) +
-//                                           std::pow(state.twist.linear.y, 2.0));
-//   _cur_linear_velocity =
-//       (1 - _alpha) * _cur_linear_velocity + _alpha * control.linear_velocity;
-//   state.twist.linear.x = _cur_linear_velocity * std::cos(_yaw + M_PI_2);
-//   state.twist.linear.y = _cur_linear_velocity * std::sin(_yaw + M_PI_2);
-//   state.twist.angular.z =
-//       (1 - _alpha) * state.twist.angular.z + _alpha * control.yaw_rate;
-//   // modify position
-//   state.pose.position.x += state.twist.linear.x * duration;
-//   state.pose.position.y += state.twist.linear.y * duration;
-//   // modify orientation
-//   _yaw += state.twist.angular.z * duration;
-//   tf2::Quaternion _qtn;
-//   _qtn.setRPY(_roll, _pitch, _yaw);
-//   state.pose.orientation.x = _qtn.x();
-//   state.pose.orientation.y = _qtn.y();
-//   state.pose.orientation.z = _qtn.z();
-//   state.pose.orientation.w = _qtn.w();
-// }
-// void Simulator::Intergrator(uav_simulator::State &state,
-//                             const uav_simulator::Control control,
-//                             const double duration) {
-//   //
-//   double _intergrate_time = intergrate_dt_;
-//   while (_intergrate_time < duration + std::numeric_limits<double>::epsilon()) {
-//     UpdateModel(state, control, intergrate_dt_);
-//     _intergrate_time += intergrate_dt_;
-//     ros::Duration(intergrate_dt_/accelerate_rate_).sleep();
-//     ros::spinOnce();
-//     if (IsCrash(state) || IsArrival(state)) break;
-//   }
-//   if (_intergrate_time + std::numeric_limits<double>::epsilon() > duration) {
-//     UpdateModel(state, control, _intergrate_time - duration);
-//     ros::Duration(_intergrate_time - duration/accelerate_rate_).sleep();
-//     ros::spinOnce();
-//   }
-// }
-// bool Simulator::IsCrash(const uav_simulator::State &state) {
-//   //
-//   for (int32_t i = 0; i < pos_obs_.size(); i++) {
-//     if (Distance(pos_obs_[i], state_.pose.position) <
-//         radius_obs_[i] + crash_limit_) {
-//       return true;
-//     }
-//   }
-//   return false;
-// }
-// bool Simulator::IsArrival(const uav_simulator::State &state) {
-//   //
-//   return Distance(state_.pose.position, start_goal_[1]) < arrive_limit_;
-// }
+void Simulator::UpdateModel(uav_simulator::State &state,
+                            const uav_simulator::Control control,
+                            const double duration) {
+  //
+  double _yaw, _pitch, _roll;
+  tf2::getEulerYPR(state.pose.orientation, _yaw, _pitch, _roll);
+  // update velicity
+  double _alpha = duration / intergrate_dt_ * state_update_factor_;
+  double _cur_linear_velocity = std::sqrt(std::pow(state.twist.linear.x, 2.0) +
+                                          std::pow(state.twist.linear.y, 2.0));
+  _cur_linear_velocity =
+      (1 - _alpha) * _cur_linear_velocity + _alpha * control.linear_velocity;
+  state.twist.linear.x = _cur_linear_velocity * std::cos(_yaw + M_PI_2);
+  state.twist.linear.y = _cur_linear_velocity * std::sin(_yaw + M_PI_2);
+  state.twist.angular.z =
+      (1 - _alpha) * state.twist.angular.z + _alpha * control.yaw_rate;
+  // modify position
+  state.pose.position.x += state.twist.linear.x * duration;
+  state.pose.position.y += state.twist.linear.y * duration;
+  // modify orientation
+  _yaw += state.twist.angular.z * duration;
+  tf2::Quaternion _qtn;
+  _qtn.setRPY(_roll, _pitch, _yaw);
+  state.pose.orientation.x = _qtn.x();
+  state.pose.orientation.y = _qtn.y();
+  state.pose.orientation.z = _qtn.z();
+  state.pose.orientation.w = _qtn.w();
+}
+void Simulator::Intergrator(uav_simulator::State &state,
+                            const uav_simulator::Control control,
+                            const double duration) {
+  //
+  double _intergrate_time = intergrate_dt_;
+  while (_intergrate_time < duration + std::numeric_limits<double>::epsilon()) {
+    UpdateModel(state, control, intergrate_dt_);
+    _intergrate_time += intergrate_dt_;
+    ros::Duration(intergrate_dt_/accelerate_rate_).sleep();
+    ros::spinOnce();
+    if (IsCrash(state) || IsArrival(state)) break;
+  }
+  if (_intergrate_time + std::numeric_limits<double>::epsilon() > duration) {
+    UpdateModel(state, control, _intergrate_time - duration);
+    ros::Duration(_intergrate_time - duration/accelerate_rate_).sleep();
+    ros::spinOnce();
+  }
+}
+bool Simulator::IsCrash(const uav_simulator::State &state) {
+  //
+  for (int32_t i = 0; i < pos_obs_.size(); i++) {
+    if (Distance(pos_obs_[i], state_.pose.position) <
+        radius_obs_[i] + crash_limit_) {
+      return true;
+    }
+  }
+  return false;
+}
+bool Simulator::IsArrival(const uav_simulator::State &state) {
+  //
+  return Distance(state_.pose.position, start_goal_[1]) < arrive_limit_;
+}
 
 
 
