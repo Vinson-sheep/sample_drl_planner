@@ -27,8 +27,8 @@ Simulator::Simulator() {
   safe_radius_ = _private_nh.param("safe_radius", 0.5);
   length_x_ = _private_nh.param("length_x", 15);
   length_y_ = _private_nh.param("length_y", 15);
-  num_obs_max_ = _private_nh.param("num_obs_max", 20);
-  num_obs_min_ = _private_nh.param("num_obs_min", 20);
+  num_obs_max_ = _private_nh.param("num_obs_max", 0);
+  num_obs_min_ = _private_nh.param("num_obs_min", 0);
   radius_obs_max_ = _private_nh.param("radius_obs_max", 2.0);
   radius_obs_min_ = _private_nh.param("radius_obs_min", 0.25);
   num_obs_max_extra_ = _private_nh.param("num_obs_max_extra", 5);
@@ -48,9 +48,9 @@ Simulator::Simulator() {
   global_path_.header.frame_id = "map";
 
   // tracking 
-  lead_distance_factor_ = _private_nh.param("lead_distance_factor", 5.0);
-  max_leading_distance_ = _private_nh.param("max_leading_distance", 5.0);
-  min_leading_distance_ = _private_nh.param("min_leading_distance", 1.0);
+  lead_distance_factor_ = _private_nh.param("lead_distance_factor", 3.0);
+  max_leading_distance_ = _private_nh.param("max_leading_distance", 3.0);
+  min_leading_distance_ = _private_nh.param("min_leading_distance", 0.5);
   num_tracking_point_ = _private_nh.param("num_tracking_point", 5);  
 
   // Subscriber
@@ -561,141 +561,6 @@ std::vector<double> Simulator::GetStateVector(const uav_simulator::State state_m
 
   return _result;
 }
-// bool Simulator::ResetMapAndDisplay() {
-//   //
-//   // initialize marker style
-//   visualization_msgs::Marker _mk_msg;
-//   _mk_msg.header.frame_id = "map";
-//   _mk_msg.header.stamp = ros::Time::now();
-//   _mk_msg.type = visualization_msgs::Marker::CYLINDER;
-//   _mk_msg.pose.orientation.w = 1;
-
-//   // delete  obstalces
-//   visualization_msgs::MarkerArray _mk_arr_msg;
-//   _mk_msg.action = visualization_msgs::Marker::DELETE;
-//   for (int32_t i = 0; i < pos_obs_.size(); i++) {
-//     _mk_msg.id = i;
-//     _mk_arr_msg.markers.push_back(_mk_msg);
-//   }
-//   visual_obs_publisher_.publish(_mk_arr_msg);
-//   pos_obs_.clear();
-//   radius_obs_.clear();
-//   // delete extra obstacles
-//   _mk_arr_msg.markers.clear();
-//   for (int32_t i = 0; i < pos_obs_extra_.size(); i++) {
-//     _mk_msg.id = i;
-//     _mk_arr_msg.markers.push_back(_mk_msg);
-//   }
-//   visual_obs_extra_publisher_.publish(_mk_arr_msg);
-//   pos_obs_extra_.clear();
-//   radius_obs_extra_.clear();
-//   // delete local goals
-//   _mk_arr_msg.markers.clear();
-//   for (int32_t i = 0; i < local_goals_.size(); i++) {
-//     _mk_msg.id = i;
-//     _mk_arr_msg.markers.push_back(_mk_msg);
-//   }
-//   visual_local_goals_publisher_.publish(_mk_arr_msg);
-//   local_goals_.clear();
-//   // delete start-goal
-//   _mk_arr_msg.markers.clear();
-//   for (int32_t i = 0; i < start_goal_.size(); i++) {
-//     _mk_msg.id = i;
-//     _mk_arr_msg.markers.push_back(_mk_msg);
-//   }
-//   visual_start_goal_publisher_.publish(_mk_arr_msg);
-  
-//   // get obstacle number
-//   int32_t _num_obs = num_obs_min_ + rand() % (num_obs_max_ - num_obs_min_ + 1);
-//   // generate new obstacles
-//   std::uniform_real_distribution<double> _x_distribution(-length_x_ / 2,
-//                                                          length_x_ / 2);
-//   std::uniform_real_distribution<double> _y_distribution(-length_y_ / 2,
-//                                                          length_y_ / 2);
-//   std::uniform_real_distribution<double> _radius_distribution(radius_obs_min_,
-//                                                               radius_obs_max_);
-//   std::default_random_engine _e(time(NULL));
-//   for (int32_t i = 0; i < _num_obs; i++) {
-//     // randomize position and size
-//     geometry_msgs::Point _point;
-//     _point.z = 0.5;
-//     double _radius;
-//     while (true) {
-//       // obstacle should keep away from safe areas
-//       _point.x = _x_distribution(_e);
-//       _point.y = _y_distribution(_e);
-//       _radius = _radius_distribution(_e);
-//       double _dist_start = Distance(_point, start_goal_[0]);
-//       double _dist_goal = Distance(_point, start_goal_[1]);
-//       // obstacle should keep away from the start-goal line
-//       if (std::fabs(_point.y) < target_distance_ / 2 &&
-//           std::fabs(_point.x) < _radius)
-//         continue;
-//       if (_dist_start > (safe_radius_ + _radius) &&
-//           _dist_goal > (safe_radius_ + _radius))
-//         break;
-//     }
-//     pos_obs_.push_back(_point);
-//     radius_obs_.push_back(_radius);
-//   }
-//   // visualize obstacles
-//   _mk_arr_msg.markers.clear();
-//   _mk_msg.color.r = 1.0;
-//   _mk_msg.color.g = 1.0;
-//   _mk_msg.color.b = 1.0;
-//   _mk_msg.color.a = 0.9;
-//   _mk_msg.action = visualization_msgs::Marker::ADD;
-//   _mk_msg.scale.z = 1;
-//   for (int32_t i = 0; i < _num_obs; i++) {
-//     _mk_msg.pose.position = pos_obs_[i];
-//     _mk_msg.id = i;
-//     _mk_msg.scale.x = radius_obs_[i] * 2;
-//     _mk_msg.scale.y = radius_obs_[i] * 2;
-//     _mk_arr_msg.markers.push_back(_mk_msg);
-//   }
-//   visual_obs_publisher_.publish(_mk_arr_msg);
-//   // visualize start-goal
-//   _mk_arr_msg.markers.clear();
-//   _mk_msg.color.r = 1.0;
-//   _mk_msg.color.g = 0.0;
-//   _mk_msg.color.b = 0.0;
-//   _mk_msg.color.a = 0.9;
-//   _mk_msg.type = visualization_msgs::Marker::SPHERE;
-//   _mk_msg.scale.x = 0.2;
-//   _mk_msg.scale.y = 0.2;
-//   _mk_msg.scale.z = 0.2;
-//   _mk_msg.pose.position = start_goal_[0];
-//   _mk_msg.id = 0;
-//   _mk_arr_msg.markers.push_back(_mk_msg);
-//   _mk_msg.pose.position = start_goal_[1];
-//   _mk_msg.id = 1;
-//   _mk_arr_msg.markers.push_back(_mk_msg);
-//   visual_start_goal_publisher_.publish(_mk_arr_msg);
-//   // reset uav pose
-//   state_.pose.position = start_goal_[0];
-//   std::uniform_real_distribution<double> _yaw_distribution(-M_PI_2, M_PI_2);
-//   double _yaw = _yaw_distribution(_e);
-//   tf2::Quaternion _qtn;
-//   _qtn.setRPY(0, 0, _yaw);
-//   state_.pose.orientation.x = _qtn.x();
-//   state_.pose.orientation.y = _qtn.y();
-//   state_.pose.orientation.z = _qtn.z();
-//   state_.pose.orientation.w = _qtn.w();
-//   // update state
-//   UpdateDistanceInfo();
-//   // send laser scan
-//   UpdateLaserScan();
-//   laser_scan_publisher_.publish(state_.scan);
-// }
-
-
-// bool Simulator::SetUAVPose(uav_simulator::SetUavPose::Request &req,
-//                            uav_simulator::SetUavPose::Response &resp) {
-//   //
-//   state_.pose = req.pose;
-//   resp.success = true;
-//   return true;
-// }
 bool Simulator::Step(uav_simulator::Step::Request &req,
                      uav_simulator::Step::Response &resp) {
   //
@@ -712,47 +577,6 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
   resp.success = true;
   return true;
 }
-// bool Simulator::SetGoals(uav_simulator::SetGoal::Request &req,
-//                uav_simulator::SetGoal::Response &resp) {
-//   //
-//   // initialize marker style
-//   visualization_msgs::MarkerArray _mk_arr_msg;
-//   visualization_msgs::Marker _mk_msg;
-//   _mk_msg.header.frame_id = "map";
-//   _mk_msg.header.stamp = ros::Time::now();
-//   _mk_msg.type = visualization_msgs::Marker::CYLINDER;
-//   _mk_msg.pose.orientation.w = 1;
-//   _mk_msg.action = visualization_msgs::Marker::DELETE;
-//   // delete local goals
-//   _mk_arr_msg.markers.clear();
-//   for (int32_t i = 0; i < local_goals_.size(); i++) {
-//     _mk_msg.id = i;
-//     _mk_arr_msg.markers.push_back(_mk_msg);
-//   }
-//   visual_local_goals_publisher_.publish(_mk_arr_msg);
-//   local_goals_ = req.position;
-//   // update state
-//   UpdateDistanceInfo();
-//   // visualize local goals
-//   _mk_arr_msg.markers.clear();
-//   _mk_msg.color.r = 1.0;
-//   _mk_msg.color.g = 0.0;
-//   _mk_msg.color.b = 0.0;
-//   _mk_msg.color.a = 0.9;
-//   _mk_msg.type = visualization_msgs::Marker::SPHERE;
-//   _mk_msg.scale.x = 0.1;
-//   _mk_msg.scale.y = 0.1;
-//   _mk_msg.scale.z = 0.1;
-//   for (int32_t i = 0; i < local_goals_.size(); i++) {
-//     _mk_msg.id = i;
-//     _mk_arr_msg.markers.push_back(_mk_msg);
-//   }
-//   visual_local_goals_publisher_.publish(_mk_arr_msg);
-
-//   resp.state = state_;
-//   resp.success = true;
-//   return true;
-// }
 bool Simulator::AddObstacleCB(uav_simulator::AddObstacle::Request &req,
                    uav_simulator::AddObstacle::Response &resp) {
   //

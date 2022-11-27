@@ -146,23 +146,34 @@ std::vector<int32_t> GetTrackingPointIdx(const nav_msgs::Path &path,
                                          const double delta_d,
                                          const int32_t tracking_point_nums,
                                          int32_t &cur_idx) {
-  // find tracking point
+  // find closest point
   geometry_msgs::Point _cur_point;
   _cur_point.x = cur_state.pose.position.x;
   _cur_point.y = cur_state.pose.position.y;
   _cur_point.z = cur_state.pose.position.z;
-  for (int32_t i = cur_idx, _n = path.poses.size(); i < _n; i++) {
+  cur_idx = 0;
+  double cur_dist = DBL_MAX;
+  for (int32_t i = 0; i < path.poses.size(); i++) {
     double _dist_t = Distance(_cur_point, path.poses[i].pose.position);
-    if (_dist_t > lead_distance) break;
-    cur_idx = i;
+    if (_dist_t < cur_dist) {
+      cur_dist  = _dist_t;
+      cur_idx  = i;
+    }
   }
-  //
+  double _dist_sum = 0;
+  int32_t _lead_idx = cur_idx;
+  // find leading point
+  for (int32_t i = cur_idx + 1, _n = path.poses.size(); i < _n; i++) {
+    double _delta_dist = Distance(path.poses[i-1].pose.position, path.poses[i].pose.position);
+    if (_dist_sum + _delta_dist > lead_distance) break;
+    _dist_sum += _delta_dist;
+    _lead_idx  = i;
+  }
+  // find tracking points
   std::vector<int32_t> _result;
-  int32_t _delta_n  = lead_distance / delta_d / tracking_point_nums;
-  // std::cout << "###" << std::endl;
-  for (int32_t i = tracking_point_nums-1; i >= 0; i--) {
-    _result.push_back(std::max(std::min(cur_idx - i * _delta_n, cur_idx), 0));
-    // std::cout << _result.back() << std::endl;
+  int32_t _delta_n  = (_lead_idx - cur_idx) / (tracking_point_nums - 1);
+  for (int32_t i = 0; i < tracking_point_nums; i++) {
+    _result.push_back(cur_idx + i * _delta_n);
   }
   return _result; 
 }
