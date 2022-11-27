@@ -5,6 +5,7 @@
 #include "geometry_msgs/Point.h"
 #include "geometry_msgs/Pose.h"
 #include "nav_msgs/Path.h"
+#include "uav_simulator/State.h"
 
 // tool function
 double Distance(const geometry_msgs::Point &lhs,
@@ -28,5 +29,11 @@ bool HomoDirect(const geometry_msgs::Point &line_a_1,
                 const geometry_msgs::Point &line_b_1,
                 const geometry_msgs::Point &line_b_2);
 void Interpolate(nav_msgs::Path &path, const double delta_d);
+std::vector<int32_t> GetTrackingPointIdx(const nav_msgs::Path &path,
+                                         const uav_simulator::State &cur_state,
+                                         const double lead_distance,
+                                         const double delta_d,
+                                         const int32_t tracking_point_nums,
+                                         int32_t &cur_idx);
 
 #endif /* COMMON_H */

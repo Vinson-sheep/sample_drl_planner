@@ -140,3 +140,29 @@ void Interpolate(nav_msgs::Path &path, const double delta_d) {
   }
   path = _path_t;
 }
+std::vector<int32_t> GetTrackingPointIdx(const nav_msgs::Path &path,
+                                         const uav_simulator::State &cur_state,
+                                         const double lead_distance,
+                                         const double delta_d,
+                                         const int32_t tracking_point_nums,
+                                         int32_t &cur_idx) {
+  // find tracking point
+  geometry_msgs::Point _cur_point;
+  _cur_point.x = cur_state.pose.position.x;
+  _cur_point.y = cur_state.pose.position.y;
+  _cur_point.z = cur_state.pose.position.z;
+  for (int32_t i = cur_idx, _n = path.poses.size(); i < _n; i++) {
+    double _dist_t = Distance(_cur_point, path.poses[i].pose.position);
+    if (_dist_t > lead_distance) break;
+    cur_idx = i;
+  }
+  //
+  std::vector<int32_t> _result;
+  int32_t _delta_n  = lead_distance / delta_d / tracking_point_nums;
+  // std::cout << "###" << std::endl;
+  for (int32_t i = tracking_point_nums-1; i >= 0; i--) {
+    _result.push_back(std::max(std::min(cur_idx - i * _delta_n, cur_idx), 0));
+    // std::cout << _result.back() << std::endl;
+  }
+  return _result; 
+}

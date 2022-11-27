@@ -47,6 +47,12 @@ Simulator::Simulator() {
   // path
   global_path_.header.frame_id = "map";
 
+  // tracking 
+  lead_distance_factor_ = _private_nh.param("lead_distance_factor", 5.0);
+  max_leading_distance_ = _private_nh.param("max_leading_distance", 5.0);
+  min_leading_distance_ = _private_nh.param("min_leading_distance", 1.0);
+  num_tracking_point_ = _private_nh.param("num_tracking_point", 5);  
+
   // Subscriber
   rviz_goal_sub_ = _nh.subscribe<geometry_msgs::PoseStamped>(
       "/move_base_simple/goal", 1, &Simulator::RvizGoalCB, this);
@@ -103,19 +109,60 @@ void Simulator::MainLoopCB(const ros::TimerEvent &event) {
   UpdateLaserScan();
 }
 
-//////////////////// display //////////////////
-
-//////////////////// update //////////////////
 bool Simulator::UpdateLocalGoals() {
-  if (global_path_.poses.empty()) {
+  if (global_path_interpolate_.poses.empty()) {
     return false;
   }
-  // TODO
+  // initialize marker style
+  visualization_msgs::Marker _mk_msg;
+  _mk_msg.header.frame_id = "map";
+  _mk_msg.header.stamp = ros::Time::now();
+  _mk_msg.type = visualization_msgs::Marker::SPHERE;
+  _mk_msg.pose.orientation.w = 1;
+  // delete  obstalces
+  visualization_msgs::MarkerArray _mk_arr_msg;
+  _mk_msg.action = visualization_msgs::Marker::DELETE;
+  for (int32_t i = 0; i < local_goals_.size(); i++) {
+    _mk_msg.id = i;
+    _mk_arr_msg.markers.push_back(_mk_msg);
+  }
+  visual_local_goals_publisher_.publish(_mk_arr_msg);
+  local_goals_.clear();
+  // get tracking point idx
+  double _cur_linear_velocity =
+      sqrt(pow(state_.twist.linear.x, 2.0) + pow(state_.twist.linear.y, 2.0));
+  double _lead_distance = lead_distance_factor_ * _cur_linear_velocity;
+  _lead_distance = std::min(max_leading_distance_,
+                            std::max(_lead_distance, min_leading_distance_));
+  std::vector<int32_t> _idxs =
+      GetTrackingPointIdx(global_path_interpolate_, state_, _lead_distance, 0.1,
+                          num_tracking_point_, cur_tracking_idx_);
+  // update local goals
+  for (int32_t i = 0; i < _idxs.size(); i++) {
+    local_goals_.push_back(global_path_interpolate_.poses[_idxs[i]].pose.position);
+  }
+  // visualize local goals
+  _mk_arr_msg.markers.clear();
+  _mk_msg.color.r = 0.0;
+  _mk_msg.color.g = 1.0;
+  _mk_msg.color.b = 1.0;
+  _mk_msg.color.a = 0.5;
+  _mk_msg.scale.x = 0.1;
+  _mk_msg.scale.y = 0.1;
+  _mk_msg.scale.z = 0.1;
+  _mk_msg.action = visualization_msgs::Marker::ADD;
+  for (int32_t i = 0; i < local_goals_.size(); i++) {
+    _mk_msg.pose.position = local_goals_[i];
+    _mk_msg.id = i;
+    _mk_arr_msg.markers.push_back(_mk_msg);
+  }
+  visual_local_goals_publisher_.publish(_mk_arr_msg);
+
 }
 bool Simulator::UpdateDistanceAngleInfo() {
   int32_t _goal_num = local_goals_.size();
   state_.target_distance.clear();
-  state_.target_distance.clear();
+  state_.target_angle.clear();
   for (int32_t i = 0; i < _goal_num; i++) {
     state_.target_distance.push_back(
         std::sqrt(pow(state_.pose.position.x - local_goals_[i].x, 2.0) +
@@ -452,6 +499,7 @@ bool Simulator::UpdateGlobalPath() {
     visual_path_publisher_.publish(global_path_);
     global_path_interpolate_ = global_path_;
     Interpolate(global_path_interpolate_, 0.1);
+    cur_tracking_idx_ = 0;
   }
 
   return true;

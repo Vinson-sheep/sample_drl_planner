@@ -79,6 +79,13 @@ class Simulator {
   nav_msgs::Path global_path_;
   nav_msgs::Path global_path_interpolate_;
 
+  // tracking
+  double lead_distance_factor_;
+  double max_leading_distance_;
+  double min_leading_distance_;
+  int32_t num_tracking_point_;
+  int32_t cur_tracking_idx_;
+
   // Subscriber
   ros::Subscriber rviz_goal_sub_;
 
