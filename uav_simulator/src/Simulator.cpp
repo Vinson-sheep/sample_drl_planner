@@ -245,21 +245,15 @@ bool Simulator::UpdateLaserScan() {
 bool Simulator::ResetMapCB(uav_simulator::ResetMap::Request &req,
                          uav_simulator::ResetMap::Response &resp) {
   //
-//  reset uav pose
-  state_.pose.position = start_goal_[0];
-  std::uniform_real_distribution<double> _yaw_distribution(-M_PI_2, M_PI_2);
-  std::default_random_engine _e(time(NULL));
-  double _yaw = _yaw_distribution(_e);
-  tf2::Quaternion _qtn;
-  _qtn.setRPY(0, 0, _yaw);
-  state_.pose.orientation.x = _qtn.x();
-  state_.pose.orientation.y = _qtn.y();
-  state_.pose.orientation.z = _qtn.z();
-  state_.pose.orientation.w = _qtn.w();
+  //  reset uav pose
+  ResetUavPose();
   // reset obstacles & display
   ResetObstacles();
   // get global path & display
-  UpdateGlobalPath();
+  while (!UpdateGlobalPath())  {
+    ResetObstacles();
+    ros::Duration(0.5).sleep();
+  }
   // reset extra obstacles & display
   ResetObstaclesExtra();
   // update local goals & display
@@ -347,6 +341,19 @@ bool Simulator::ResetObstacles() {
 
   return true;
 }
+bool Simulator::ResetUavPose() {
+  state_.pose.position = start_goal_[0];
+  std::uniform_real_distribution<double> _yaw_distribution(-M_PI_2, M_PI_2);
+  std::default_random_engine _e(time(NULL));
+  double _yaw = _yaw_distribution(_e);
+  tf2::Quaternion _qtn;
+  _qtn.setRPY(0, 0, _yaw);
+  state_.pose.orientation.x = _qtn.x();
+  state_.pose.orientation.y = _qtn.y();
+  state_.pose.orientation.z = _qtn.z();
+  state_.pose.orientation.w = _qtn.w();
+  return true;
+}
 bool Simulator::ResetObstaclesExtra() {
   //
   // initialize marker style
@@ -393,8 +400,8 @@ bool Simulator::ResetObstaclesExtra() {
       // if (std::fabs(_point.y) < target_distance_ / 2 &&
       //     std::fabs(_point.x) < _radius)
       //   continue;
-      if (_dist_start > (safe_radius_ + _radius) &&
-          _dist_goal > (safe_radius_ + _radius))
+      if (_dist_start > (2*safe_radius_ + _radius) &&
+          _dist_goal > (2*safe_radius_ + _radius))
         break;
     }
     pos_obs_extra_.push_back(_point);
@@ -496,6 +503,7 @@ bool Simulator::UpdateGlobalPath() {
     }
   } else {
     std::cout << "No solution found" << std::endl;
+    return false;
   }
   // visualize global path
   if (_solved) {
@@ -584,7 +592,7 @@ uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state
                       _allocation_factors.size())) /
         (1 - distance_reward_allocation_factor_);
     for (int32_t i = 0, _n = _allocation_factors.size(); i < _n; i++) {
-      _allocation_factors[i] = _factor_t / _corrective_factor;
+      _allocation_factors[_n - 1 - i] = _factor_t / _corrective_factor;
       _factor_t *= distance_reward_allocation_factor_;
     }
   }

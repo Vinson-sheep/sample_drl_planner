@@ -129,6 +129,7 @@ class Simulator {
   void RvizGoalCB(const geometry_msgs::PoseStamped::ConstPtr &msg_p);
 
   // reset &update
+  bool ResetUavPose();
   bool ResetObstacles();
   bool ResetObstaclesExtra();
   bool UpdateGlobalPath();
