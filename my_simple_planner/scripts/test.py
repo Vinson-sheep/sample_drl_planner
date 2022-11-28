@@ -5,21 +5,18 @@ import math
 import rospy
 from uav_simulator.srv import *
 from uav_simulator.msg import *
-from my_simple_planner.msg import *
 import numpy as np
 import os
 import pickle
 
-# import DDPG
-# import TD3
 import SAC
 
 # Test param
 kLoadProgress = False
 
 # DRL param
-kPolicy = "SAC" # DDPG or TD3 or SAC
-kStateDim = 44
+kPolicy = "SAC"
+kStateDim = 52
 kActionDim = 2
 kMaxEpisode = 1000
 kMaxStepSize = 100

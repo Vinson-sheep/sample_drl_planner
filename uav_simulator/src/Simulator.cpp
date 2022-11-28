@@ -4,38 +4,38 @@
 Simulator::Simulator() {
   //
   ros::NodeHandle _nh;
-  ros::NodeHandle _private_nh;
+  ros::NodeHandle _private_nh("~");
 
   // uav state
-  max_linear_velocity_ = _private_nh.param("max_linear_velocity", 1.0);
-  max_angular_velocity_ = _private_nh.param("max_angular_velocity", 1.0);
-  crash_limit_ = _private_nh.param("crash_limit", 0.2);
-  arrive_limit_ = _private_nh.param("arrive_limit", 0.2);
-  angle_max_ = _private_nh.param("angle_max", 2 * M_PI / 3);
-  angle_min_ = _private_nh.param("angle_min", -2 * M_PI / 3);
-  range_max_ = _private_nh.param("range_max", 3.0);
-  range_min_ = _private_nh.param("range_min", 0.15);
-  num_laser_ = _private_nh.param("num_laser", 40);
-  flight_height_ = _private_nh.param("flight_height", 0.5);
-  intergrate_dt_ = _private_nh.param("intergrate_dt", 0.02);
-  accelerate_rate_ = _private_nh.param("accelerate_rate", 1.0);
-  state_update_factor_ = _private_nh.param("state_update_factor", 0.1);
+  _private_nh.param("max_linear_velocity", max_linear_velocity_, 1.0);
+  _private_nh.param("max_angular_velocity", max_angular_velocity_, 1.0);
+  _private_nh.param("crash_limit", crash_limit_, 0.2);
+  _private_nh.param("arrive_limit", arrive_limit_, 0.2);
+  _private_nh.param("angle_max", angle_max_, 2 * M_PI / 3);
+  _private_nh.param("angle_min", angle_min_, -2 * M_PI / 3);
+  _private_nh.param("range_max", range_max_, 3.0);
+  _private_nh.param("range_min", range_min_, 0.15);
+  _private_nh.param("num_laser", num_laser_, 40);
+  _private_nh.param("flight_height", flight_height_, 0.5);
+  _private_nh.param("intergrate_dt", intergrate_dt_, 0.02);
+  _private_nh.param("accelerate_rate", accelerate_rate_, 1.0);
+  _private_nh.param("state_update_factor", state_update_factor_, 0.1);
   state_.pose.orientation.w = 1.0;
 
   // grid map
-  target_distance_ = _private_nh.param("target_distance", 8.0);
-  safe_radius_ = _private_nh.param("safe_radius", 0.5);
-  length_x_ = _private_nh.param("length_x", 15);
-  length_y_ = _private_nh.param("length_y", 15);
-  num_obs_max_ = _private_nh.param("num_obs_max", 20);
-  num_obs_min_ = _private_nh.param("num_obs_min", 2);
-  radius_obs_max_ = _private_nh.param("radius_obs_max", 2.0);
-  radius_obs_min_ = _private_nh.param("radius_obs_min", 0.25);
-  num_obs_max_extra_ = _private_nh.param("num_obs_max_extra", 5);
-  num_obs_min_extra_ = _private_nh.param("num_obs_min_extra", 2);
-  radius_obs_max_extra_ = _private_nh.param("radius_obs_max_extra", 0.3);
-  radius_obs_min_extra_ = _private_nh.param("radius_obs_min_extra", 0.25);
-  vibration_distance_extra_ = _private_nh.param("vibration_distance_extra", 0.5);
+  _private_nh.param("target_distance", target_distance_, 8.0);
+  _private_nh.param("safe_radius", safe_radius_, 0.5);
+  _private_nh.param("length_x", length_x_, 15.0);
+  _private_nh.param("length_y", length_y_, 15.0);
+  _private_nh.param("num_obs_max", num_obs_max_, 20);
+  _private_nh.param("num_obs_min", num_obs_min_, 2);
+  _private_nh.param("radius_obs_max", radius_obs_max_, 2.0);
+  _private_nh.param("radius_obs_min", radius_obs_min_, 0.25);
+  _private_nh.param("num_obs_max_extra", num_obs_max_extra_, 5);
+  _private_nh.param("num_obs_min_extra", num_obs_min_extra_ , 2);
+  _private_nh.param("radius_obs_max_extra", radius_obs_max_extra_, 0.3);
+  _private_nh.param("radius_obs_min_extra", radius_obs_min_extra_, 0.25);
+  _private_nh.param("vibration_distance_extra", vibration_distance_extra_, 0.5);
   start_goal_.resize(2);
   start_goal_[0].x = 0;
   start_goal_[0].y = -target_distance_ / 2;
@@ -48,10 +48,10 @@ Simulator::Simulator() {
   global_path_.header.frame_id = "map";
 
   // tracking 
-  lead_distance_factor_ = _private_nh.param("lead_distance_factor", 3.0);
-  max_leading_distance_ = _private_nh.param("max_leading_distance", 3.0);
-  min_leading_distance_ = _private_nh.param("min_leading_distance", 1.0);
-  num_tracking_point_ = _private_nh.param("num_tracking_point", 5);  
+  _private_nh.param("lead_distance_factor", lead_distance_factor_, 3.0);
+  _private_nh.param("max_leading_distance", max_leading_distance_, 3.0);
+  _private_nh.param("min_leading_distance", min_leading_distance_, 1.0);
+  _private_nh.param("num_tracking_point", num_tracking_point_, 5);  
 
   // Subscriber
   rviz_goal_sub_ = _nh.subscribe<geometry_msgs::PoseStamped>(
@@ -74,11 +74,11 @@ Simulator::Simulator() {
       _nh.advertise<visualization_msgs::MarkerArray>("waypoints", 1);
 
   // Servicer
-  reset_map_server_ =
-      _nh.advertiseService("reset_map", &Simulator::ResetMap, this);
-  step_server_ = _nh.advertiseService("step", &Simulator::Step, this);
   add_obs_server_ =
       _nh.advertiseService("add_obstacle", &Simulator::AddObstacleCB, this);
+  reset_map_server_ =
+      _nh.advertiseService("reset_map", &Simulator::ResetMapCB, this);
+  step_server_ = _nh.advertiseService("step", &Simulator::StepCB, this);
 
   // Timer
   mainloop_timer_ =
@@ -238,7 +238,7 @@ bool Simulator::UpdateLaserScan() {
   laser_scan_publisher_.publish(state_.scan);
   return true;
 }
-bool Simulator::ResetMap(uav_simulator::ResetMap::Request &req,
+bool Simulator::ResetMapCB(uav_simulator::ResetMap::Request &req,
                          uav_simulator::ResetMap::Response &resp) {
   //
 //  reset uav pose
@@ -613,7 +613,7 @@ uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state
   return _reward_msg;
 }
 
-bool Simulator::Step(uav_simulator::Step::Request &req,
+bool Simulator::StepCB(uav_simulator::Step::Request &req,
                      uav_simulator::Step::Response &resp) {
   //
   uav_simulator::State _cur_state = state_;
@@ -636,6 +636,7 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
   resp.success = true;
   return true;
 }
+
 bool Simulator::AddObstacleCB(uav_simulator::AddObstacle::Request &req,
                    uav_simulator::AddObstacle::Response &resp) {
   //

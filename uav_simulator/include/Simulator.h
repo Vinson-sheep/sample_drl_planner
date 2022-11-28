@@ -21,6 +21,8 @@
 #include "uav_simulator/State.h"
 #include "uav_simulator/Step.h"
 #include "uav_simulator/Reward.h"
+#include "uav_simulator/SetMapParam.h"
+#include "uav_simulator/SetSensorParam.h"
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "nav_msgs/Path.h"
@@ -115,9 +117,9 @@ class Simulator {
 
   //
   void MainLoopCB(const ros::TimerEvent &event);
-  bool ResetMap(uav_simulator::ResetMap::Request &req,
+  bool ResetMapCB(uav_simulator::ResetMap::Request &req,
                 uav_simulator::ResetMap::Response &resp);
-  bool Step(uav_simulator::Step::Request &req,
+  bool StepCB(uav_simulator::Step::Request &req,
             uav_simulator::Step::Response &resp);
   bool AddObstacleCB(uav_simulator::AddObstacle::Request &req,
                    uav_simulator::AddObstacle::Response &resp);
