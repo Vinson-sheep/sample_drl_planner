@@ -89,6 +89,9 @@ class Simulator {
   int32_t num_tracking_point_;
   int32_t cur_tracking_idx_;
 
+  // reward
+  double distance_reward_allocation_factor_;
+
   // Subscriber
   ros::Subscriber rviz_goal_sub_;
 

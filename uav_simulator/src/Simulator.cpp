@@ -53,6 +53,10 @@ Simulator::Simulator() {
   _private_nh.param("min_leading_distance", min_leading_distance_, 1.0);
   _private_nh.param("num_tracking_point", num_tracking_point_, 5);  
 
+  // reward
+  _private_nh.param("distance_reward_allocation_factor",
+                    distance_reward_allocation_factor_, 1.0);
+
   // Subscriber
   rviz_goal_sub_ = _nh.subscribe<geometry_msgs::PoseStamped>(
       "/move_base_simple/goal", 1, &Simulator::RvizGoalCB, this);
@@ -570,6 +574,21 @@ uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state
   //
   // distance reward 
   vector<float_t> _distance_rewards;
+  vector<double> _allocation_factors(local_goals.size(), 1.0);
+  if (fabs(distance_reward_allocation_factor_ - 1.0) >
+      std::numeric_limits<double>::epsilon()) {
+    //
+    double _factor_t = 1.0;
+    double _corrective_factor =
+        (1 - std::pow(distance_reward_allocation_factor_,
+                      _allocation_factors.size())) /
+        (1 - distance_reward_allocation_factor_);
+    for (int32_t i = 0, _n = _allocation_factors.size(); i < _n; i++) {
+      _allocation_factors[i] = _factor_t / _corrective_factor;
+      _factor_t *= distance_reward_allocation_factor_;
+    }
+  }
+  std::cout << std::endl;
   double _distance_reward = 0.0;
   for (int32_t i = 0, _n = local_goals.size(); i < _n; i++) {
     double _dist_prev = Distance(cur_state.pose.position, local_goals[i]);

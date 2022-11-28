@@ -61,8 +61,6 @@ add_message_files(
   Control.msg
   Reward.msg
   RewardStamped.msg
-  MapParam.msg
-  SensorParam.msg
   Obstacle.msg
   State.msg
   StateStamped.msg
@@ -74,8 +72,6 @@ add_service_files(
   FILES
   AddObstacle.srv
   ResetMap.srv
-  SetMapParam.srv
-  SetSensorParam.srv
   Step.srv
 )
 
