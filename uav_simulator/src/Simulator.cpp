@@ -592,7 +592,9 @@ uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state
   for (int32_t i = 0, _n = local_goals.size(); i < _n; i++) {
     double _dist_prev = Distance(cur_state.pose.position, local_goals[i]);
     double _dist_rear = Distance(next_state.pose.position, local_goals[i]);
-    double _distance_reward_t  = (_dist_prev  - _dist_rear) * (1 / step_time) * 1.6;
+    double _distance_reward_t = _allocation_factors[i] *
+                                (_dist_prev - _dist_rear) * (1 / step_time) *
+                                1.6;
     _distance_rewards.push_back(_distance_reward_t);
     _distance_reward += _distance_reward_t;
   }
