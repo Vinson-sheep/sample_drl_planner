@@ -27,8 +27,8 @@ Simulator::Simulator() {
   safe_radius_ = _private_nh.param("safe_radius", 0.5);
   length_x_ = _private_nh.param("length_x", 15);
   length_y_ = _private_nh.param("length_y", 15);
-  num_obs_max_ = _private_nh.param("num_obs_max", 0);
-  num_obs_min_ = _private_nh.param("num_obs_min", 0);
+  num_obs_max_ = _private_nh.param("num_obs_max", 20);
+  num_obs_min_ = _private_nh.param("num_obs_min", 2);
   radius_obs_max_ = _private_nh.param("radius_obs_max", 2.0);
   radius_obs_min_ = _private_nh.param("radius_obs_min", 0.25);
   num_obs_max_extra_ = _private_nh.param("num_obs_max_extra", 5);
@@ -572,6 +572,7 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
   UpdateLaserScan();
   laser_scan_publisher_.publish(state_.scan);
 
+  resp.state_vector = GetStateVector(state_);
   resp.is_crash = IsCrash(state_);
   resp.is_arrive = IsArrival(state_);
   resp.success = true;
@@ -694,6 +695,12 @@ bool Simulator::IsCrash(const uav_simulator::State &state) {
   for (int32_t i = 0; i < pos_obs_.size(); i++) {
     if (Distance(pos_obs_[i], state_.pose.position) <
         radius_obs_[i] + crash_limit_) {
+      return true;
+    }
+  }
+  for (int32_t i = 0; i < pos_obs_extra_.size(); i++) {
+    if (Distance(pos_obs_extra_[i], state_.pose.position) <
+        radius_obs_extra_[i] + crash_limit_) {
       return true;
     }
   }
