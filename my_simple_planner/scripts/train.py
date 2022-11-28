@@ -28,7 +28,7 @@ kPolicy = "SAC"
 kStateDim = 52
 kActionDim = 2
 kMaxEpisode =  1000
-kMaxStepSize = 50
+kMaxStepSize = 100
 kInitEpisode = 5
 K = 1
 # uav param
