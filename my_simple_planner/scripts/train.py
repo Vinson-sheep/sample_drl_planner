@@ -23,8 +23,6 @@ kLoadOptim = False
 kFixActorFlag = False
 kUsePriority = True
 
-kTargetNum = 1
-
 # DRL param
 kPolicy = "SAC"
 kStateDim = 52
@@ -34,28 +32,9 @@ kMaxStepSize = 100
 kInitEpisode = 5
 K = 1
 # uav param
-kMaxLinearVelicity = 1.0
-kMaxAngularVeclity = 1.0
+kMaxLinearVelocity = 1.0
+kMaxAngularVelocity = 1.0
 kStepTime = 0.2
-# map param
-kTargetDistance = 5
-kSafeRadius = 0.4
-kLengthX = 15
-kLengthY = 15
-kNumObsMax = 20
-kNUmObsMin = 5
-kRadiusObsMax = 2.0
-kRadiusObsMin = 0.25
-kCrashLimit = 0.25
-kArriveLimit = 0.25
-KIntegrateDt = 0.02
-kAccelerateRate = 1.0
-# sensor param
-kRangeMax = 5.0
-kRangeMin = 0.15
-kAngleMax = 2 * math.pi / 3
-kAngleMin = -2 * math.pi / 3
-kNumLaser = 40
 
 # variable
 episode_rewards = np.array([])
@@ -240,8 +219,8 @@ if __name__ == '__main__':
 
             # publish control
             _control_msg = Control()
-            _control_msg.linear_velocity = (_a0_vector[0] + 1) / 2 * kMaxLinearVelicity
-            _control_msg.yaw_rate = _a0_vector[1] * kMaxAngularVeclity
+            _control_msg.linear_velocity = (_a0_vector[0] + 1) / 2 * kMaxLinearVelocity
+            _control_msg.yaw_rate = _a0_vector[1] * kMaxAngularVelocity
             _control_publisher.publish(_control_msg)
             # publish state vector
             _state_vector_msg = StateVectorStamped()
@@ -272,6 +251,7 @@ if __name__ == '__main__':
 
             _is_crash = _step_resp.is_crash
             _is_arrive = _step_resp.is_arrive
+            _is_out_range = _step_resp.is_out_range
 
             # publish reward
             _r1_msg  = RewardStamped()
@@ -296,13 +276,8 @@ if __name__ == '__main__':
             _s0_vector = _s1_vector
 
             if _done: break
+            if _is_out_range: break
             if rospy.is_shutdown(): break
-
-            # if uav is out of range
-            if (_s0.pose.position.x < -kLengthX/2 or _s0.pose.position.x > kLengthX/2):
-                break
-            if (_s0.pose.position.y < -kLengthY/2 or _s0.pose.position.y > kLengthY/2):
-                break
 
         episode_time = (rospy.Time.now() - episode_begin_time).to_sec()
         episode_rewards = np.append(episode_rewards, episode_reward)

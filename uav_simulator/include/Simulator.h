@@ -153,6 +153,7 @@ class Simulator {
                    const uav_simulator::Control control, const double duration);
   bool IsCrash(const uav_simulator::State &state);
   bool IsArrival(const uav_simulator::State &state);
+  bool IsOutRange(const uav_simulator::State &state);
 };
 
 #endif /* SIMULATOR_H */

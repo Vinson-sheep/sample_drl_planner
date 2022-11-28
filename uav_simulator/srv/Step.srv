@@ -7,4 +7,5 @@ uav_simulator/Reward reward
 float64[] state_vector
 bool is_crash
 bool is_arrive
+bool is_out_range
 bool success

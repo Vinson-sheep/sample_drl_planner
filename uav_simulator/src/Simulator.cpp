@@ -588,7 +588,6 @@ uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state
       _factor_t *= distance_reward_allocation_factor_;
     }
   }
-  std::cout << std::endl;
   double _distance_reward = 0.0;
   for (int32_t i = 0, _n = local_goals.size(); i < _n; i++) {
     double _dist_prev = Distance(cur_state.pose.position, local_goals[i]);
@@ -649,6 +648,7 @@ bool Simulator::StepCB(uav_simulator::Step::Request &req,
   resp.state_vector = GetStateVector(state_);
   resp.is_crash = IsCrash(state_);
   resp.is_arrive = IsArrival(state_);
+  resp.is_out_range = IsOutRange(state_);
   resp.reward =
       GetReward(_cur_state, _next_state, _cur_local_goals, req.step_time,
                 resp.is_arrive, resp.is_crash, req.step_count);
@@ -788,7 +788,13 @@ bool Simulator::IsArrival(const uav_simulator::State &state) {
   //
   return Distance(state_.pose.position, start_goal_[1]) < arrive_limit_;
 }
-
+bool Simulator::IsOutRange(const uav_simulator::State &state) {
+  //
+  double _x = state.pose.position.x;
+  double _y = state.pose.position.y;
+  return (_x < -length_x_ / 2) || (_x > length_x_ / 2) ||
+         (_y < -length_y_ / 2) || (_y > length_y_ / 2);
+}
 
 
 int32_t main(int32_t argc, char *argv[]) {
