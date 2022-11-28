@@ -59,10 +59,14 @@ find_package(Eigen3 REQUIRED)
 add_message_files(
   FILES
   Control.msg
+  Reward.msg
+  RewardStamped.msg
   MapParam.msg
   SensorParam.msg
   Obstacle.msg
   State.msg
+  StateStamped.msg
+  StateVectorStamped.msg
 )
 
 ## Generate services in the 'srv' folder

@@ -15,7 +15,7 @@ import pickle
 import SAC
 
 # Test param
-kLoadProgress = True
+kLoadProgress = False
 
 # DRL param
 kPolicy = "SAC" # DDPG or TD3 or SAC

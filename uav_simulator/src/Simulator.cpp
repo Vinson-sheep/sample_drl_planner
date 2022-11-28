@@ -50,7 +50,7 @@ Simulator::Simulator() {
   // tracking 
   lead_distance_factor_ = _private_nh.param("lead_distance_factor", 3.0);
   max_leading_distance_ = _private_nh.param("max_leading_distance", 3.0);
-  min_leading_distance_ = _private_nh.param("min_leading_distance", 0.5);
+  min_leading_distance_ = _private_nh.param("min_leading_distance", 1.0);
   num_tracking_point_ = _private_nh.param("num_tracking_point", 5);  
 
   // Subscriber
@@ -532,7 +532,7 @@ bool Simulator::DisplayStartGoal() {
 
   return true;
 }
-std::vector<double> Simulator::GetStateVector(const uav_simulator::State state_msg) {
+std::vector<double> Simulator::GetStateVector(const uav_simulator::State &state_msg) {
   //
   std::vector<double> _result;
   // add obstacle info
@@ -553,7 +553,7 @@ std::vector<double> Simulator::GetStateVector(const uav_simulator::State state_m
   // add target info
   for (int32_t i = 0; i < local_goals_.size(); i++) {
     double _target_distance =
-        (state_msg.target_distance[i] - 2.5) / 2.5;
+        (state_msg.target_distance[i] - 1.5) / 1.5;
     _result.push_back(_target_distance);
     double _target_angle = state_msg.target_angle[i] / M_PI;
   _result.push_back(_target_angle);
@@ -561,10 +561,65 @@ std::vector<double> Simulator::GetStateVector(const uav_simulator::State state_m
 
   return _result;
 }
+uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state,
+                                  const uav_simulator::State &next_state,
+                                  const vector<geometry_msgs::Point> &local_goals, 
+                                  const double step_time, const bool is_arrival,
+                                  const bool is_crash,
+                                  const int32_t step_count) {
+  //
+  // distance reward 
+  vector<float_t> _distance_rewards;
+  double _distance_reward = 0.0;
+  for (int32_t i = 0, _n = local_goals.size(); i < _n; i++) {
+    double _dist_prev = Distance(cur_state.pose.position, local_goals[i]);
+    double _dist_rear = Distance(next_state.pose.position, local_goals[i]);
+    double _distance_reward_t  = (_dist_prev  - _dist_rear) * (1 / step_time) * 1.6;
+    _distance_rewards.push_back(_distance_reward_t);
+    _distance_reward += _distance_reward_t;
+  }
+  // arrival reward
+  double _arrival_reward  = 0.0;
+  if (is_arrival) _arrival_reward = 20;
+  // crash reward
+  double _crash_reward = 0.0;
+  double _min_range = *std::min_element(next_state.scan.ranges.begin(),
+                                        next_state.scan.ranges.end()) -
+                      crash_limit_;
+  _crash_reward = -15.0 * std::exp(-_min_range/0.1);
+  // laser reward
+  double _laser_reward = 0.0;
+  for (int32_t i = 0, _n = next_state.scan.ranges.size(); i < _n; i++) {
+    double _range = (next_state.scan.ranges[i] - next_state.scan.range_min) /
+                    (next_state.scan.range_max - next_state.scan.range_min);
+    _laser_reward += -0.3 * std::exp(-_range/0.05);
+  }
+  _laser_reward = std::max(_laser_reward, -100.0);
+  // step reward
+  double _step_reward = -step_count * 0.04;
+  // total reward
+  double _total_reward = _distance_reward + _arrival_reward + _crash_reward +
+                         _laser_reward + _step_reward;
+
+  uav_simulator::Reward _reward_msg;
+  _reward_msg.distance_rewards = _distance_rewards;
+  _reward_msg.distance_reward = _distance_reward;
+  _reward_msg.arrive_reward  = _arrival_reward;
+  _reward_msg.crash_reward  = _crash_reward;
+  _reward_msg.laser_reward = _laser_reward;
+  _reward_msg.step_punish_reward = _step_reward;
+  _reward_msg.total_reward  = _total_reward;
+
+  return _reward_msg;
+}
+
 bool Simulator::Step(uav_simulator::Step::Request &req,
                      uav_simulator::Step::Response &resp) {
   //
+  uav_simulator::State _cur_state = state_;
+  vector<geometry_msgs::Point> _cur_local_goals = local_goals_;
   Intergrator(state_, req.control, req.step_time);
+  uav_simulator::State _next_state = state_;
   resp.state = state_;
   // update state
   bool UpdateDistanceAngleInfo();
@@ -575,6 +630,9 @@ bool Simulator::Step(uav_simulator::Step::Request &req,
   resp.state_vector = GetStateVector(state_);
   resp.is_crash = IsCrash(state_);
   resp.is_arrive = IsArrival(state_);
+  resp.reward =
+      GetReward(_cur_state, _next_state, _cur_local_goals, req.step_time,
+                resp.is_arrive, resp.is_crash, req.step_count);
   resp.success = true;
   return true;
 }

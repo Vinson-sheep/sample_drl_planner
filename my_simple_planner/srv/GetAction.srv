@@ -1,4 +1,0 @@
-float64[] state
----
-float32[] action
-bool success

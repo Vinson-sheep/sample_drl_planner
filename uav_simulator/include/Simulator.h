@@ -20,6 +20,7 @@
 #include "uav_simulator/ResetMap.h"
 #include "uav_simulator/State.h"
 #include "uav_simulator/Step.h"
+#include "uav_simulator/Reward.h"
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "nav_msgs/Path.h"
@@ -132,7 +133,13 @@ class Simulator {
   bool DisplayStartGoal();
 
   // tool
-  std::vector<double> GetStateVector(const uav_simulator::State state_msg);
+  std::vector<double> GetStateVector(const uav_simulator::State &state_msg);
+  uav_simulator::Reward GetReward(const uav_simulator::State &cur_state,
+                                  const uav_simulator::State &next_state,
+                                  const vector<geometry_msgs::Point> &local_goals, 
+                                  const double step_time, const bool is_arrival,
+                                  const bool is_crash,
+                                  const int32_t step_count);
 
   // model
   void UpdateModel(uav_simulator::State &state,

@@ -13,15 +13,10 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   nav_msgs
   rospy
-  message_generation
-  visualization_msgs
-  # uav_simulator
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(ompl REQUIRED)
-find_package(Eigen3 REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -53,18 +48,14 @@ find_package(Eigen3 REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  Reward.msg
-  StateVector.msg
-)
+# add_message_files(
+#   FILES
+# )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  GetAction.srv
-  GetPath.srv
-)
+# add_service_files(
+#   FILES
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -74,13 +65,12 @@ add_service_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  geometry_msgs
-  sensor_msgs
-  uav_simulator
-)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+#   geometry_msgs
+#   sensor_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -126,9 +116,6 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
-  /usr/local/include/ompl-1.5
-  ${EIGEN3_INCLUDE_DIRS}
-  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -144,8 +131,6 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(global_planner src/global_planner.cpp)
-# add_executable(mission_node src/mission_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -155,15 +140,9 @@ add_executable(global_planner src/global_planner.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(global_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 # add_dependencies(mission_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(global_planner
-  ${catkin_LIBRARIES}
-  ${OMPL_LIBRARIES}
-  ${EIGEN_LIBRARIES}
-)
 # target_link_libraries(mission_node
 #   ${catkin_LIBRARIES}
 # )
@@ -180,7 +159,6 @@ target_link_libraries(global_planner
 catkin_install_python(PROGRAMS
   scripts/train.py
   scripts/test.py
-  scripts/local_planner.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

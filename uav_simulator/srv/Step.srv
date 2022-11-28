@@ -1,9 +1,10 @@
 uav_simulator/Control control
 float32 step_time
+int32 step_count
 ---
 uav_simulator/State state
+uav_simulator/Reward reward
 float64[] state_vector
 bool is_crash
 bool is_arrive
 bool success
-
