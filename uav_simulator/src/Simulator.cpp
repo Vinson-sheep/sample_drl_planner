@@ -492,7 +492,6 @@ bool Simulator::UpdateGlobalPath() {
     _path->print(std::cout);
     // construct response msg
     global_path_.poses.clear();
-    std::vector<geometry_msgs::Point> _points;
     for (int32_t i = 0; i < _path->getStateCount(); i++) {
       const ob::RealVectorStateSpace::StateType *state =
           _path->getState(i)->as<ob::RealVectorStateSpace::StateType>();
@@ -500,6 +499,9 @@ bool Simulator::UpdateGlobalPath() {
       _ps_msg.pose.position.x = (*state)[0];
       _ps_msg.pose.position.y = (*state)[1];
       global_path_.poses.push_back(_ps_msg);
+    }
+    if (Distance(start_goal_[1], global_path_.poses.back().pose.position) > 0.1) {
+      return false;
     }
   } else {
     std::cout << "No solution found" << std::endl;
@@ -606,8 +608,17 @@ uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state
     _distance_rewards.push_back(_distance_reward_t);
     _distance_reward += _distance_reward_t;
   }
+  // tracking reward
+  double _tracking_reward = 0.0;
+  if (local_goals.size() != 1) {
+    double _tracking_error = next_state.target_distance.front();
+  //  _tracking_reward = 2.0 * std::exp(-_tracking_error/0.1);
+   _tracking_reward = -  1.0 * _tracking_error;
+  }
   // arrival reward
   double _arrival_reward  = 0.0;
+  // double _goal_distance = Distance(next_state.pose.position, start_goal_[1]);
+  // _arrival_reward = 5.0 * std::exp(-_goal_distance/0.1);
   if (is_arrival) _arrival_reward = 20;
   // crash reward
   double _crash_reward = 0.0;
@@ -624,14 +635,15 @@ uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state
   }
   _laser_reward = std::max(_laser_reward, -100.0);
   // step reward
-  double _step_reward = -step_count * 0.04;
+  double _step_reward = -step_count * 0.02;
   // total reward
-  double _total_reward = _distance_reward + _arrival_reward + _crash_reward +
-                         _laser_reward + _step_reward;
+  double _total_reward = _distance_reward + _tracking_reward + _arrival_reward +
+                         _crash_reward + _laser_reward + _step_reward;
 
   uav_simulator::Reward _reward_msg;
   _reward_msg.distance_rewards = _distance_rewards;
   _reward_msg.distance_reward = _distance_reward;
+  _reward_msg.tracking_reward = _tracking_reward;
   _reward_msg.arrive_reward  = _arrival_reward;
   _reward_msg.crash_reward  = _crash_reward;
   _reward_msg.laser_reward = _laser_reward;

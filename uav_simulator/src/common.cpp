@@ -173,7 +173,13 @@ std::vector<int32_t> GetTrackingPointIdx(const nav_msgs::Path &path,
   std::vector<int32_t> _result;
   int32_t _delta_n  = (_lead_idx - cur_idx) / (tracking_point_nums - 1);
   for (int32_t i = 0; i < tracking_point_nums; i++) {
-    _result.push_back(cur_idx + i * _delta_n);
+    // fine-tune tracking points
+    if (_lead_idx == (path.poses.size() - 1) && i != 1) {
+      _result.push_back(_lead_idx);
+    }
+    else {
+      _result.push_back(cur_idx + i * _delta_n);
+    }
   }
   return _result; 
 }

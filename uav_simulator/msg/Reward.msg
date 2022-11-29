@@ -1,6 +1,7 @@
 Header header
 float32[] distance_rewards
 float32 distance_reward
+float32 tracking_reward
 float32 arrive_reward
 float32 crash_reward
 float32 laser_reward

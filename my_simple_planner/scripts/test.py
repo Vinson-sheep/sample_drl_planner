@@ -19,7 +19,7 @@ kPolicy = "SAC"
 kStateDim = 52
 kActionDim = 2
 kMaxEpisode = 1000
-kMaxStepSize = 100
+kMaxStepSize = 10000
 # uav param
 kMaxLinearVelocity = 1.0
 kMaxAngularVelocity = 1.0
@@ -120,7 +120,7 @@ if __name__ == '__main__':
             _a0_vector = agent.act(_s0_vector)
 
             # get rid of trap
-            # if IsInTrap(_s0): break
+            if IsInTrap(_s0): break
 
             # publish control
             _control_msg = Control()
