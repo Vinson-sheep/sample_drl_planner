@@ -21,8 +21,6 @@
 #include "uav_simulator/State.h"
 #include "uav_simulator/Step.h"
 #include "uav_simulator/Reward.h"
-#include "uav_simulator/SetMapParam.h"
-#include "uav_simulator/SetSensorParam.h"
 #include "visualization_msgs/Marker.h"
 #include "visualization_msgs/MarkerArray.h"
 #include "nav_msgs/Path.h"
