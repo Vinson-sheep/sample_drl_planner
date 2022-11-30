@@ -70,9 +70,9 @@ uav_pos_queue = []
 
 def IsInTrap(new_state):
     global uav_pos_queue
-    if len(uav_pos_queue ) > 5: uav_pos_queue  = uav_pos_queue[1:]
+    if len(uav_pos_queue ) > 50: uav_pos_queue  = uav_pos_queue[1:]
     uav_pos_queue .append([new_state.pose.position.x, new_state.pose.position.y,new_state.pose.position.z])
-    if (len(uav_pos_queue) < 5): return False
+    if (len(uav_pos_queue) < 50): return False
     _std = np.std(np.array(uav_pos_queue), 0)
     _limit = 0.02
     return _std[0] < _limit and _std[1] < _limit and _std[2] < _limit
@@ -113,6 +113,8 @@ if __name__ == '__main__':
 
         _s0 = resp.state
         _s0_vector = resp.state_vector
+
+        uav_pos_queue = []
 
         for step in range(kMaxStepSize):
 

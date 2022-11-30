@@ -207,6 +207,8 @@ if __name__ == '__main__':
         episode_reward = 0
         episode_begin_time = rospy.Time.now()
 
+        uav_pos_queue = []
+
         for step in range(kMaxStepSize):
 
             step_begin_time = rospy.Time.now()
