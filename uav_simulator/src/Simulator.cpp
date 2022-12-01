@@ -612,26 +612,25 @@ uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state
   double _tracking_reward = 0.0;
   if (local_goals.size() != 1) {
     double _tracking_error = next_state.target_distance.front();
-  //  _tracking_reward = 2.0 * std::exp(-_tracking_error/0.1);
    _tracking_reward = -  1.0 * _tracking_error;
   }
   // arrival reward
   double _arrival_reward  = 0.0;
   // double _goal_distance = Distance(next_state.pose.position, start_goal_[1]);
   // _arrival_reward = 5.0 * std::exp(-_goal_distance/0.1);
-  if (is_arrival) _arrival_reward = 20;
+  if (is_arrival) _arrival_reward = 15;
   // crash reward
   double _crash_reward = 0.0;
   double _min_range = *std::min_element(next_state.scan.ranges.begin(),
                                         next_state.scan.ranges.end()) -
                       crash_limit_;
-  _crash_reward = -15.0 * std::exp(-_min_range/0.1);
+  _crash_reward = -15.0 * std::exp(-_min_range/0.15);
   // laser reward
   double _laser_reward = 0.0;
   for (int32_t i = 0, _n = next_state.scan.ranges.size(); i < _n; i++) {
     double _range = (next_state.scan.ranges[i] - next_state.scan.range_min) /
                     (next_state.scan.range_max - next_state.scan.range_min);
-    _laser_reward += -0.3 * std::exp(-_range/0.05);
+    _laser_reward += -0.3 * std::exp(-_range/0.1);
   }
   _laser_reward = std::max(_laser_reward, -100.0);
   // step reward

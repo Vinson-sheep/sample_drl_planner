@@ -21,16 +21,16 @@
     <param name="accelerate_rate" value="1.0" />
     <param name="state_update_factor" value="0.1" />
     <!-- grid map -->
-    <param name="target_distance" value="40" />
+    <param name="target_distance" value="20" />
     <param name="safe_radius" value="0.25" />
     <param name="length_x" value="15" />
-    <param name="length_y" value="50" />
-    <param name="num_obs_max" value="50" />
-    <param name="num_obs_min" value="20" />
+    <param name="length_y" value="30" />
+    <param name="num_obs_max" value="30" />
+    <param name="num_obs_min" value="10" />
     <param name="radius_obs_max" value="2.0" />
     <param name="radius_obs_min" value="0.25" />
     <param name="num_obs_max_extra" value="10" />
-    <param name="num_obs_min_extra" value="5" />
+    <param name="num_obs_min_extra" value="3" />
     <param name="radius_obs_max_extra" value="0.3" />
     <param name="radius_obs_min_extra" value="0.25" />
     <param name="vibration_distance_extra" value="0.5" />

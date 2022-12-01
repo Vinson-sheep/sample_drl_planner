@@ -28,13 +28,13 @@ kPolicy = "SAC"
 kStateDim = 52
 kActionDim = 2
 kMaxEpisode =  1000
-kMaxStepSize = 100
+kMaxStepSize = 50
 kInitEpisode = 5
 K = 1
 # uav param
 kMaxLinearVelocity = 1.0
 kMaxAngularVelocity = 1.0
-kStepTime = 0.2
+kStepTime = 0.5
 
 # variable
 episode_rewards = np.array([])
