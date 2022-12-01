@@ -25,7 +25,7 @@ kUsePriority = True
 
 # DRL param
 kPolicy = "SAC"
-kStateDim = 52
+kStateDim = 44
 kActionDim = 2
 kMaxEpisode =  1000
 kMaxStepSize = 50

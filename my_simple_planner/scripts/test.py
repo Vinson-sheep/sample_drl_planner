@@ -12,11 +12,11 @@ import pickle
 import SAC
 
 # Test param
-kLoadProgress = False
+kLoadProgress = True
 
 # DRL param
 kPolicy = "SAC"
-kStateDim = 52
+kStateDim = 46
 kActionDim = 2
 kMaxEpisode = 1000
 kMaxStepSize = 10000

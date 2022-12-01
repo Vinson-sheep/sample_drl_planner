@@ -56,6 +56,8 @@ Simulator::Simulator() {
   // reward
   _private_nh.param("distance_reward_allocation_factor",
                     distance_reward_allocation_factor_, 1.0);
+  _private_nh.param("tracking_reward_include",
+                    tracking_reward_include_, true);
 
   // Subscriber
   rviz_goal_sub_ = _nh.subscribe<geometry_msgs::PoseStamped>(
@@ -140,11 +142,12 @@ bool Simulator::UpdateLocalGoals() {
                             std::max(_lead_distance, min_leading_distance_));
   std::vector<int32_t> _idxs =
       GetTrackingPointIdx(global_path_interpolate_, state_, _lead_distance, 0.1,
-                          num_tracking_point_, cur_tracking_idx_);
+                          num_tracking_point_ + 1, cur_tracking_idx_);
   // update local goals
   for (int32_t i = 0; i < _idxs.size(); i++) {
     local_goals_.push_back(global_path_interpolate_.poses[_idxs[i]].pose.position);
   }
+  if (!tracking_reward_include_) local_goals_.erase(local_goals_.begin());
   // visualize local goals
   _mk_arr_msg.markers.clear();
   _mk_msg.color.r = 0.0;

@@ -89,6 +89,7 @@ class Simulator {
 
   // reward
   double distance_reward_allocation_factor_;
+  bool tracking_reward_include_;
 
   // Subscriber
   ros::Subscriber rviz_goal_sub_;

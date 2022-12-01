@@ -30,7 +30,9 @@
     <param name="radius_obs_max" value="2.0" />
     <param name="radius_obs_min" value="0.25" />
     <param name="num_obs_max_extra" value="10" />
+    <!-- <param name="num_obs_max_extra" value="0" /> -->
     <param name="num_obs_min_extra" value="3" />
+    <!-- <param name="num_obs_min_extra" value="0" /> -->
     <param name="radius_obs_max_extra" value="0.3" />
     <param name="radius_obs_min_extra" value="0.25" />
     <param name="vibration_distance_extra" value="0.5" />
@@ -38,7 +40,7 @@
     <param name="lead_distance_factor" value="3.0" />
     <param name="max_leading_distance" value="3.0" />
     <param name="min_leading_distance" value="3.0" />
-    <param name="num_tracking_point" value="5" />
+    <param name="num_tracking_point" value="2" />
     <!-- reward -->
     <param name="distance_reward_allocation_factor" value="0.8" />
   </node>

@@ -21,7 +21,7 @@ Original paper:
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # parameters
-state_dim = 52
+state_dim = 44
 action_dim = 2
 tau = 0.01
 actor_lr = 3e-4

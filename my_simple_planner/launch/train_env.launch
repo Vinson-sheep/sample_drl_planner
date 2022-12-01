@@ -38,8 +38,9 @@
     <param name="lead_distance_factor" value="3.0" />
     <param name="max_leading_distance" value="3.0" />
     <param name="min_leading_distance" value="3.0" />
-    <param name="num_tracking_point" value="5" />
+    <param name="num_tracking_point" value="1" />
     <!-- reward -->
     <param name="distance_reward_allocation_factor" value="0.5" />
+    <param name="tracking_reward_include" value="false" />
   </node>
 </launch>
