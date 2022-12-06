@@ -25,7 +25,7 @@ kUsePriority = True
 
 # DRL param
 kPolicy = "SAC"
-kStateDim = 44
+kStateDim = 52
 kActionDim = 2
 kMaxEpisode =  1000
 kMaxStepSize = 50
@@ -159,9 +159,9 @@ uav_pos_queue = []
 
 def IsInTrap(new_state):
     global uav_pos_queue
-    if len(uav_pos_queue ) > 5: uav_pos_queue  = uav_pos_queue[1:]
+    if len(uav_pos_queue ) > 50: uav_pos_queue  = uav_pos_queue[1:]
     uav_pos_queue .append([new_state.pose.position.x, new_state.pose.position.y,new_state.pose.position.z])
-    if (len(uav_pos_queue) < 5): return False
+    if (len(uav_pos_queue) < 50): return False
     _std = np.std(np.array(uav_pos_queue), 0)
     _limit = 0.02
     return _std[0] < _limit and _std[1] < _limit and _std[2] < _limit
@@ -217,7 +217,8 @@ if __name__ == '__main__':
             _a0_vector = agent.act(_s0_vector)
 
             # get rid of trap
-            if IsInTrap(_s0): _a0_vector[0] += 0.1
+            # if IsInTrap(_s0): _a0_vector[0] += 0.1
+            if IsInTrap(_s0): break
 
             # publish control
             _control_msg = Control()

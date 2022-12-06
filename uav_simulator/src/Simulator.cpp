@@ -587,7 +587,8 @@ uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state
   //
   // distance reward 
   vector<float_t> _distance_rewards;
-  vector<double> _allocation_factors(local_goals.size(), 1.0 / local_goals.size());
+  int32_t _local_goals_size = local_goals.size() - tracking_reward_include_;
+  vector<double> _allocation_factors(_local_goals_size, 1.0 / _local_goals_size);
   if (fabs(distance_reward_allocation_factor_ - 1.0) >
       std::numeric_limits<double>::epsilon()) {
     //
@@ -602,12 +603,12 @@ uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state
     }
   }
   double _distance_reward = 0.0;
-  for (int32_t i = 0, _n = local_goals.size(); i < _n; i++) {
+  for (int32_t i = tracking_reward_include_, _n = local_goals.size(); i < _n; i++) {
     double _dist_prev = Distance(cur_state.pose.position, local_goals[i]);
     double _dist_rear = Distance(next_state.pose.position, local_goals[i]);
-    double _distance_reward_t = _allocation_factors[i] *
-                                (_dist_prev - _dist_rear) * (5 / step_time) *
-                                1.6;
+    double _distance_reward_t = _allocation_factors[i - tracking_reward_include_] *
+                                (_dist_prev - _dist_rear) * (1 / step_time) *
+                                8.0;
     _distance_rewards.push_back(_distance_reward_t);
     _distance_reward += _distance_reward_t;
   }

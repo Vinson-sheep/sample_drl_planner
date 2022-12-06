@@ -12,14 +12,14 @@ import pickle
 import SAC
 
 # Test param
-kLoadProgress = True
+kLoadProgress = False
 
 # DRL param
 kPolicy = "SAC"
-kStateDim = 46
+kStateDim = 52
 kActionDim = 2
 kMaxEpisode = 1000
-kMaxStepSize = 10000
+kMaxStepSize = 1000
 # uav param
 kMaxLinearVelocity = 1.0
 kMaxAngularVelocity = 1.0
