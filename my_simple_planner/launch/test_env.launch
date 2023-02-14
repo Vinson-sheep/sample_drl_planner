@@ -26,12 +26,12 @@
     <param name="length_x" value="15" />
     <param name="length_y" value="30" />
     <param name="num_obs_max" value="30" />
-    <param name="num_obs_min" value="10" />
+    <param name="num_obs_min" value="25" />
     <param name="radius_obs_max" value="2.0" />
     <param name="radius_obs_min" value="0.25" />
     <param name="num_obs_max_extra" value="10" />
     <!-- <param name="num_obs_max_extra" value="0" /> -->
-    <param name="num_obs_min_extra" value="3" />
+    <param name="num_obs_min_extra" value="8" />
     <!-- <param name="num_obs_min_extra" value="0" /> -->
     <param name="radius_obs_max_extra" value="0.3" />
     <param name="radius_obs_min_extra" value="0.25" />
@@ -45,4 +45,7 @@
     <param name="distance_reward_allocation_factor" value="0.8" />
     <param name="tracking_reward_include" value="true" />
   </node>
+
+  <node pkg="my_simple_planner" name="floor_pub" type="floor"  output="screen" />
+
 </launch>

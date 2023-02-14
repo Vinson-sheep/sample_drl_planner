@@ -154,9 +154,9 @@ bool Simulator::UpdateLocalGoals() {
   _mk_msg.color.g = 1.0;
   _mk_msg.color.b = 1.0;
   _mk_msg.color.a = 0.5;
-  _mk_msg.scale.x = 0.1;
-  _mk_msg.scale.y = 0.1;
-  _mk_msg.scale.z = 0.1;
+  _mk_msg.scale.x = 0.2;
+  _mk_msg.scale.y = 0.2;
+  _mk_msg.scale.z = 0.2;
   _mk_msg.action = visualization_msgs::Marker::ADD;
   for (int32_t i = 0; i < local_goals_.size(); i++) {
     _mk_msg.pose.position = local_goals_[i];
@@ -164,7 +164,6 @@ bool Simulator::UpdateLocalGoals() {
     _mk_arr_msg.markers.push_back(_mk_msg);
   }
   visual_local_goals_publisher_.publish(_mk_arr_msg);
-
 }
 bool Simulator::UpdateDistanceAngleInfo() {
   int32_t _goal_num = local_goals_.size();
@@ -293,38 +292,69 @@ bool Simulator::ResetObstacles() {
   pos_obs_.clear();
   radius_obs_.clear();
   // get obstacle number
-  int32_t _num_obs = num_obs_min_ + rand() % (num_obs_max_ - num_obs_min_ + 1);
+  // int32_t _num_obs = num_obs_min_ + rand() % (num_obs_max_ - num_obs_min_ + 1);
+  int32_t _num_obs = 27;
+  std::cout << "Global obs num: " << _num_obs << std::endl;
+  
   // generate new obstacles
-  std::uniform_real_distribution<double> _x_distribution(-length_x_ / 2,
-                                                         length_x_ / 2);
-  std::uniform_real_distribution<double> _y_distribution(-length_y_ / 2,
-                                                         length_y_ / 2);
-  std::uniform_real_distribution<double> _radius_distribution(radius_obs_min_,
-                                                              radius_obs_max_);
-  std::default_random_engine _e(time(NULL));
-  for (int32_t i = 0; i < _num_obs; i++) {
-    // randomize position and size
+  // std::uniform_real_distribution<double> _x_distribution(-length_x_ / 2,
+  //                                                        length_x_ / 2);
+  // std::uniform_real_distribution<double> _y_distribution(-length_y_ / 2,
+  //                                                        length_y_ / 2);
+  // std::uniform_real_distribution<double> _radius_distribution(radius_obs_min_,
+  //                                                             radius_obs_max_);
+  // std::default_random_engine _e(time(NULL));
+  // for (int32_t i = 0; i < _num_obs; i++) {
+  //   // randomize position and size
+  //   geometry_msgs::Point _point;
+  //   _point.z = 0.5;
+  //   double _radius;
+  //   while (true) {
+  //     // obstacle should keep away from safe areas
+  //     _point.x = _x_distribution(_e);
+  //     _point.y = _y_distribution(_e);
+  //     _radius = _radius_distribution(_e);
+  //     double _dist_start = Distance(_point, start_goal_[0]);
+  //     double _dist_goal = Distance(_point, start_goal_[1]);
+  //     // obstacle should keep away from the start-goal line
+  //     // if (std::fabs(_point.y) < target_distance_ / 2 &&
+  //     //     std::fabs(_point.x) < _radius)
+  //     //   continue;
+  //     if (_dist_start > (safe_radius_ + _radius) &&
+  //         _dist_goal > (safe_radius_ + _radius))
+  //       break;
+  //   }
+  //   pos_obs_.push_back(_point);
+  //   radius_obs_.push_back(_radius);
+  // }
+  
+  std::vector<double> _x = {0.847841, 0.15073, 1.40959, -7.20383, 4.47776, -3.71344, 4.16816, 4.35395, 6.98781, 2.80674, 4.33649, 2.27592, 2.02922, -5.31274, -1.81554, 4.67287, 1.45067, 1.821, 5.39941, 3.60727, 5.95923, -0.477861, -4.65565, -0.0352415, 6.07139, -1.77771, -3.48609,};
+  std::vector<double> _y = {2.01622, 7.4002, -9.91728, -11.0832, -12.1439, -11.6378, -0.999557, 14.4792, 12.3667, -9.54151, 13.4475, -10.0326, -0.536833, -9.57347, 0.352467, -9.58261, -6.81027, 11.5074, -5.93894, 8.38176, 9.73534, 8.06238, 3.54565, -12.0625, -6.94311, 7.65401, 11.379,};
+  std::vector<double> _radius = {1.92047, 1.60282, 0.818905, 0.872761, 1.49882, 1.63105, 1.03115, 1.44319, 0.493575, 1.33663, 0.946675, 1.66622, 1.76296, 1.19338, 1.52391, 0.906666, 1.93996, 1.38249, 0.79188, 0.928302, 0.947833, 0.726208, 0.828568, 0.809951, 1.64561, 1.39083, 1.94708,};
+  for (int32_t i = 0; i < _x.size(); i++) {
     geometry_msgs::Point _point;
+    _point.x = _x[i];
+    _point.y = _y[i];
     _point.z = 0.5;
-    double _radius;
-    while (true) {
-      // obstacle should keep away from safe areas
-      _point.x = _x_distribution(_e);
-      _point.y = _y_distribution(_e);
-      _radius = _radius_distribution(_e);
-      double _dist_start = Distance(_point, start_goal_[0]);
-      double _dist_goal = Distance(_point, start_goal_[1]);
-      // obstacle should keep away from the start-goal line
-      // if (std::fabs(_point.y) < target_distance_ / 2 &&
-      //     std::fabs(_point.x) < _radius)
-      //   continue;
-      if (_dist_start > (safe_radius_ + _radius) &&
-          _dist_goal > (safe_radius_ + _radius))
-        break;
-    }
     pos_obs_.push_back(_point);
-    radius_obs_.push_back(_radius);
+  } 
+  radius_obs_ = _radius;
+
+  std::cout << "Global obs pos x: " << std::endl;
+  for (auto pos: pos_obs_) {
+    std::cout << pos.x << ", ";
   }
+  std::cout << std::endl;
+  std::cout << "Global obs pos y: " << std::endl;
+  for (auto pos: pos_obs_) {
+    std::cout << pos.y << ", ";
+  }
+  std::cout << std::endl;
+  std::cout << "Global obs radius: " << std::endl;
+  for (auto rad: radius_obs_) {
+    std::cout << rad << ", ";
+  }
+  std::cout << std::endl;
   // visualize obstacles
   _mk_arr_msg.markers.clear();
   _mk_msg.color.r = 1.0;
@@ -355,6 +385,13 @@ bool Simulator::ResetUavPose() {
   state_.pose.orientation.y = _qtn.y();
   state_.pose.orientation.z = _qtn.z();
   state_.pose.orientation.w = _qtn.w();
+  // state_.pose.orientation.x = 0;
+  // state_.pose.orientation.y = 0;
+  // state_.pose.orientation.z = -0.622049;
+  // state_.pose.orientation.w = 0.782978;
+
+  std::cout << "UAV qtr: " << _qtn.x() << ", " << _qtn.y() << ", " << _qtn.z() << ", " << _qtn.w() << std::endl;
+
   return true;
 }
 bool Simulator::ResetObstaclesExtra() {
@@ -376,47 +413,76 @@ bool Simulator::ResetObstaclesExtra() {
   pos_obs_extra_.clear();
   radius_obs_extra_.clear();
 // get obstacle number
-  int32_t _num_obs = num_obs_min_extra_ +
-                     rand() % (num_obs_max_extra_ - num_obs_min_extra_ + 1);
+  // int32_t _num_obs = num_obs_min_extra_ +
+  //                    rand() % (num_obs_max_extra_ - num_obs_min_extra_ + 1);
+  int32_t _num_obs = 9;
+  std::cout << "num obs extra: " << _num_obs << std::endl;
   // generate new obstacles
   std::uniform_real_distribution<double> _vibration_distribution(-vibration_distance_extra_,
                                                          vibration_distance_extra_);
   std::uniform_real_distribution<double> _radius_distribution(radius_obs_min_extra_,
                                                               radius_obs_max_extra_);
   std::default_random_engine _e(time(NULL));
-  for (int32_t i = 0; i < _num_obs; i++) {
-    geometry_msgs::Point _point;
-    _point.z = 0.5;
-    double _radius;
-    while (true) {
-      // select random global path waypoints
-      int32_t _idx  = rand() % global_path_interpolate_.poses.size();
-      // obstacle should keep away from safe areas
-      _point.x = global_path_interpolate_.poses[_idx].pose.position.x +
-                 _vibration_distribution(_e);
-      _point.y = global_path_interpolate_.poses[_idx].pose.position.y +
-                 _vibration_distribution(_e);
-      _radius = _radius_distribution(_e);
-      double _dist_start = Distance(_point, start_goal_[0]);
-      double _dist_goal = Distance(_point, start_goal_[1]);
-      // obstacle should keep away from the start-goal line
-      // if (std::fabs(_point.y) < target_distance_ / 2 &&
-      //     std::fabs(_point.x) < _radius)
-      //   continue;
-      if (_dist_start > (2*safe_radius_ + _radius) &&
-          _dist_goal > (2*safe_radius_ + _radius))
-        break;
-    }
-    pos_obs_extra_.push_back(_point);
-    radius_obs_extra_.push_back(_radius);
-  }
+  // for (int32_t i = 0; i < _num_obs; i++) {
+  //   geometry_msgs::Point _point;
+  //   _point.z = 0.5;
+  //   double _radius;
+  //   while (true) {
+  //     // select random global path waypoints
+  //     int32_t _idx  = rand() % global_path_interpolate_.poses.size();
+  //     // obstacle should keep away from safe areas
+  //     _point.x = global_path_interpolate_.poses[_idx].pose.position.x +
+  //                _vibration_distribution(_e);
+  //     _point.y = global_path_interpolate_.poses[_idx].pose.position.y +
+  //                _vibration_distribution(_e);
+  //     _radius = _radius_distribution(_e);
+  //     double _dist_start = Distance(_point, start_goal_[0]);
+  //     double _dist_goal = Distance(_point, start_goal_[1]);
+  //     // obstacle should keep away from the start-goal line
+  //     // if (std::fabs(_point.y) < target_distance_ / 2 &&
+  //     //     std::fabs(_point.x) < _radius)
+  //     //   continue;
+  //     if (_dist_start > (2*safe_radius_ + _radius) &&
+  //         _dist_goal > (2*safe_radius_ + _radius))
+  //       break;
+  //   }
+  //   pos_obs_extra_.push_back(_point);
+  //   radius_obs_extra_.push_back(_radius);
+  // }
 
+  std::vector<double> _x = {-1.06205, -1.87742, -1.32535, -3.34744, -0.578724, -2.68926, -4.05924, -3.16651, 1.3073,};
+  std::vector<double> _y = {-7.3123, 3.43505, 3.32897, -0.759414, 4.2829, -3.43126, 1.36287, 1.9667, 6.29791,};
+  std::vector<double> _radius = {0.258676, 0.264623, 0.299629, 0.262776, 0.252853, 0.252092, 0.288586, 0.27683, 0.286064,};
+  for (int32_t i = 0; i < _x.size(); i++) {
+    geometry_msgs::Point _point;
+    _point.x = _x[i];
+    _point.y = _y[i];
+    _point.z = 0.5;
+    pos_obs_extra_.push_back(_point);
+  } 
+  radius_obs_extra_ = _radius;
+
+  std::cout << "Global obs extra pos x: " << std::endl;
+  for (auto pos: pos_obs_extra_) {
+    std::cout << pos.x << ", ";
+  }
+  std::cout << std::endl;
+  std::cout << "Global obs extra pos y: " << std::endl;
+  for (auto pos: pos_obs_extra_) {
+    std::cout << pos.y << ", ";
+  }
+  std::cout << std::endl;
+  std::cout << "Global obs extra radius: " << std::endl;
+  for (auto rad: radius_obs_extra_) {
+    std::cout << rad << ", ";
+  }
+  std::cout << std::endl;
   // visualize obstacles
   _mk_arr_msg.markers.clear();
   _mk_msg.color.r = 0.0;
   _mk_msg.color.g = 0.0;
   _mk_msg.color.b = 1.0;
-  _mk_msg.color.a = 0.9;
+  _mk_msg.color.a = 1.0;
   _mk_msg.action = visualization_msgs::Marker::ADD;
   _mk_msg.scale.z = 1;
   for (int32_t i = 0; i < _num_obs; i++) {
@@ -512,8 +578,32 @@ bool Simulator::UpdateGlobalPath() {
   }
   // visualize global path
   if (_solved) {
+
+    global_path_.poses.clear();
+    std::vector<double> _x = {0, -1.51364, -2.64165, -3.64769, -3.8126, -3.91057, -3.68423, -3.56809, -3.19945, -1.64475, 0.188659, 1.32051, 2.13972, 2.29576, 2.16038, 1.31597, 0,};
+    std::vector<double> _y = {-10, -6.17163, -3.35369, -0.755503, 0.0224649, 0.58058, 1.18066, 1.38546, 1.92523, 3.19163, 4.64273, 5.56068, 6.44098, 7.44444, 8.38013, 9.27306, 10,};
+    geometry_msgs::PoseStamped _ps_msg;
+    for (int32_t i = 0; i < _x.size(); i++) {
+      _ps_msg.pose.position.x = _x[i];
+      _ps_msg.pose.position.y = _y[i];
+      _ps_msg.pose.position.z = 0;
+      global_path_.poses.push_back(_ps_msg);
+    }
+
     global_path_.header.stamp = ros::Time::now();
     visual_path_publisher_.publish(global_path_);
+
+    std::cout << "Global path pos x: " << std::endl;
+    for (auto pos: global_path_.poses) {
+      std::cout << pos.pose.position.x << ", ";
+    }
+    std::cout << std::endl;
+    std::cout << "Global path pos y: " << std::endl;
+    for (auto pos: global_path_.poses) {
+      std::cout << pos.pose.position.y << ", ";
+    }
+    std::cout << std::endl;
+
     global_path_interpolate_ = global_path_;
     Interpolate(global_path_interpolate_, 0.1);
     cur_tracking_idx_ = 0;

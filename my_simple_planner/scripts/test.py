@@ -19,7 +19,7 @@ kPolicy = "SAC"
 kStateDim = 52
 kActionDim = 2
 kMaxEpisode = 1000
-kMaxStepSize = 1000
+kMaxStepSize = 2000
 # uav param
 kMaxLinearVelocity = 1.0
 kMaxAngularVelocity = 1.0
