@@ -7,12 +7,12 @@
   <!-- simulator-->
   <node name="simulator" pkg="uav_simulator" type="simulator" output="screen">
     <!-- uav -->
-    <param name="max_linear_velocity" value="1.0" />
+    <param name="max_linear_velocity" value="0.5" />
     <param name="max_angular_velocity" value="1.0" />
     <param name="crash_limit" value="0.2" />
     <param name="arrive_limit" value="0.3" />
-    <param name="angle_max" value="2.0943951023931953" />
-    <param name="angle_min" value="-2.0943951023931953" />
+    <param name="angle_max" value="2.356194490192345" />
+    <param name="angle_min" value="-2.356194490192345" />
     <param name="range_max" value="3.0" />
     <param name="range_min" value="0.15" />
     <param name="num_laser" value="40" />
