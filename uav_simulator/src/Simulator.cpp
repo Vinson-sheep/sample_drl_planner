@@ -44,6 +44,9 @@ Simulator::Simulator() {
   start_goal_[1].y = 0.0;
   start_goal_[1].z = flight_height_;
 
+  // noise
+  state_vector_noise_max_ = 0.03;
+
   // path
   global_path_.header.frame_id = "map";
 
@@ -577,7 +580,12 @@ std::vector<double> Simulator::GetStateVector(const uav_simulator::State &state_
     double _target_angle = state_msg.target_angle[i] / M_PI;
   _result.push_back(_target_angle);
   }
-
+  // add noise
+  std::uniform_real_distribution<double> _distribution(-state_vector_noise_max_, state_vector_noise_max_);
+  std::default_random_engine _e(time(NULL));
+  for (int32_t i = 0; i < _result.size(); i++) {
+    _result[i] += _distribution(_e);
+  }
   return _result;
 }
 uav_simulator::Reward Simulator::GetReward(const uav_simulator::State &cur_state,

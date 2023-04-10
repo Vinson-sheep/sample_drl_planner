@@ -91,6 +91,9 @@ class Simulator {
   double distance_reward_allocation_factor_;
   bool tracking_reward_include_;
 
+  // noise
+  double state_vector_noise_max_;
+
   // Subscriber
   ros::Subscriber rviz_goal_sub_;
 
