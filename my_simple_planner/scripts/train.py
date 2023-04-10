@@ -32,7 +32,7 @@ kMaxStepSize = 50
 kInitEpisode = 5
 K = 1
 # uav param
-kMaxLinearVelocity = 1.0
+kMaxLinearVelocity = 0.5
 kMaxAngularVelocity = 1.0
 kStepTime = 0.5
 

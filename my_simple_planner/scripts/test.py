@@ -21,7 +21,7 @@ kActionDim = 2
 kMaxEpisode = 1000
 kMaxStepSize = 1000
 # uav param
-kMaxLinearVelocity = 1.0
+kMaxLinearVelocity = 0.5
 kMaxAngularVelocity = 1.0
 kStepTime = 0.1
 
