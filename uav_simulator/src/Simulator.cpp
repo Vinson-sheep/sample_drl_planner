@@ -37,11 +37,11 @@ Simulator::Simulator() {
   _private_nh.param("radius_obs_min_extra", radius_obs_min_extra_, 0.25);
   _private_nh.param("vibration_distance_extra", vibration_distance_extra_, 0.5);
   start_goal_.resize(2);
-  start_goal_[0].x = 0;
-  start_goal_[0].y = -target_distance_ / 2;
+  start_goal_[0].x = -target_distance_ / 2;
+  start_goal_[0].y = 0.0;
   start_goal_[0].z = flight_height_;
-  start_goal_[1].x = 0;
-  start_goal_[1].y = target_distance_ / 2;
+  start_goal_[1].x = target_distance_ / 2;
+  start_goal_[1].y = 0.0;
   start_goal_[1].z = flight_height_;
 
   // path
@@ -174,8 +174,8 @@ bool Simulator::UpdateDistanceAngleInfo() {
     state_.target_distance.push_back(
         std::sqrt(pow(state_.pose.position.x - local_goals_[i].x, 2.0) +
                   pow(state_.pose.position.y - local_goals_[i].y, 2.0)));
-    double _angle_uav_target = std::atan2(state_.pose.position.y - local_goals_[i].y,
-                                          state_.pose.position.x - local_goals_[i].x);
+    double _angle_uav_target = std::atan2( local_goals_[i].y - state_.pose.position.y,
+                                          local_goals_[i].x - state_.pose.position.x);
     double _angle_uav = tf2::getYaw(state_.pose.orientation);
     state_.target_angle.push_back(
         angles::shortest_angular_distance(_angle_uav, _angle_uav_target));
@@ -196,8 +196,7 @@ bool Simulator::UpdateLaserScan() {
   _ls_msg.time_increment = 0.01 / num_laser_;
   _ls_msg.scan_time = 0.01;
   //
-  double _angle_base = tf2::getYaw(state_.pose.orientation);
-  _angle_base += M_PI_2 + angle_min_;
+  double _angle_base = tf2::getYaw(state_.pose.orientation) + angle_min_;
   for (int32_t i = 0; i < num_laser_; i++) {
     // update range
     double _angle = _angle_base + i * _ls_msg.angle_increment;
@@ -350,7 +349,8 @@ bool Simulator::ResetUavPose() {
   std::default_random_engine _e(time(NULL));
   double _yaw = _yaw_distribution(_e);
   tf2::Quaternion _qtn;
-  _qtn.setRPY(0, 0, _yaw);
+  // _qtn.setRPY(0, 0, _yaw);
+  _qtn.setRPY(0, 0, 0.0);
   state_.pose.orientation.x = _qtn.x();
   state_.pose.orientation.y = _qtn.y();
   state_.pose.orientation.z = _qtn.z();
@@ -540,9 +540,11 @@ bool Simulator::DisplayStartGoal() {
   _mk_msg.scale.y = 0.2;
   _mk_msg.scale.z = 0.2;
   _mk_msg.pose.position = start_goal_[0];
+  _mk_msg.pose.position.z = 0.2;
   _mk_msg.id = 0;
   _mk_arr_msg.markers.push_back(_mk_msg);
   _mk_msg.pose.position = start_goal_[1];
+  _mk_msg.pose.position.z = 0.2;
   _mk_msg.id = 1;
   _mk_arr_msg.markers.push_back(_mk_msg);
   visual_start_goal_publisher_.publish(_mk_arr_msg);
@@ -759,8 +761,8 @@ void Simulator::UpdateModel(uav_simulator::State &state,
                                           std::pow(state.twist.linear.y, 2.0));
   _cur_linear_velocity =
       (1 - _alpha) * _cur_linear_velocity + _alpha * control.linear_velocity;
-  state.twist.linear.x = _cur_linear_velocity * std::cos(_yaw + M_PI_2);
-  state.twist.linear.y = _cur_linear_velocity * std::sin(_yaw + M_PI_2);
+  state.twist.linear.x = _cur_linear_velocity * std::cos(_yaw);
+  state.twist.linear.y = _cur_linear_velocity * std::sin(_yaw);
   state.twist.angular.z =
       (1 - _alpha) * state.twist.angular.z + _alpha * control.yaw_rate;
   // modify position
