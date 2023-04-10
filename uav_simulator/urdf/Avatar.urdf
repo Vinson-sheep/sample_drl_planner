@@ -38,8 +38,8 @@
     </inertial>
     <visual>
       <origin
-        xyz="0 0 0"
-        rpy="0 0 0" />
+        xyz="0.06 -0.169 -0.08"
+        rpy="0 0 -1.5707963267948966" />
       <geometry>
         <mesh
           filename="package://uav_simulator/meshes/base_link.STL" />
