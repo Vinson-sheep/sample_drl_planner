@@ -38,6 +38,7 @@ kStepTime = 0.5
 
 # variable
 episode_rewards = np.array([])
+tracking_rewards = np.array([])
 episode_times = np.array([])
 step_rewards = np.array([])
 actor_losses = np.array([])
@@ -77,6 +78,7 @@ class saveThread(threading.Thread):
         begin_time = rospy.Time.now()
         # save data
         np.save(url + "episode_rewards.npy", episode_rewards)
+        np.save(url + "tracking_rewards.npy", tracking_rewards)
         np.save(url + "episode_times.npy", episode_times)
         np.save(url + "step_rewards.npy", step_rewards)
         np.save(url + "actor_losses.npy", actor_losses)
@@ -126,6 +128,7 @@ class learnThread(threading.Thread):
 def loadData():
 
     global episode_rewards
+    global tracking_rewards
     global episode_times
     global step_rewards
     global actor_losses
@@ -133,12 +136,14 @@ def loadData():
     global alpha_losses
     global alphas
     episode_rewards = np.load(url + "episode_rewards.npy")
+    tracking_rewards = np.load(url + "tracking_rewards.npy")
     episode_times = np.load(url + "episode_times.npy")
     step_rewards = np.load(url + "step_rewards.npy")
     actor_losses = np.load(url + "actor_losses.npy")
     critic_losses = np.load(url + "critic_losses.npy")
 
     for i in range(episode_rewards.size): writer.add_scalar("Performance/episode_reward", episode_rewards[i], global_step=i)  
+    for i in range(tracking_rewards.size): writer.add_scalar("Performance/tracking_reward", tracking_rewards[i], global_step=i)  
     for i in range(episode_times.size): writer.add_scalar("Performance/episode_time", episode_times[i], global_step=i)  
     for i in range(step_rewards.size): writer.add_scalar("Performance/step_reward", step_rewards[i], global_step=i)  
     for i in range(actor_losses.size): writer.add_scalar("Loss/actor_loss", actor_losses[i], global_step=i)  
@@ -205,6 +210,7 @@ if __name__ == '__main__':
         _s0_vector = resp.state_vector
 
         episode_reward = 0
+        tracking_reward = 0
         episode_begin_time = rospy.Time.now()
 
         uav_pos_queue = []
@@ -262,6 +268,7 @@ if __name__ == '__main__':
             _r1_msg.reward = _step_resp.reward
             _reward_publisher.publish(_r1_msg)
             _r1 =  _step_resp.reward.total_reward
+            _rt = _step_resp.reward.tracking_reward
 
             _done = (_is_arrive or _is_crash)
 
@@ -275,6 +282,7 @@ if __name__ == '__main__':
 
             # other
             episode_reward += _r1
+            tracking_reward += _rt
             _s0 = _s1
             _s0_vector = _s1_vector
 
@@ -284,8 +292,10 @@ if __name__ == '__main__':
 
         episode_time = (rospy.Time.now() - episode_begin_time).to_sec()
         episode_rewards = np.append(episode_rewards, episode_reward)
+        tracking_rewards = np.append(tracking_rewards, tracking_reward)
         episode_times = np.append(episode_times, episode_time)
         writer.add_scalar("Performance/episode_reward", episode_reward, global_step=episode_rewards.size-1)  
+        writer.add_scalar("Performance/tracking_reward", tracking_reward, global_step=tracking_rewards.size-1)  
         writer.add_scalar("Performance/episode_time", episode_time, global_step=episode_times.size-1)  
 
         if rospy.is_shutdown(): break
