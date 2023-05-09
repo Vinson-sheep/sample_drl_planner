@@ -13,12 +13,12 @@ from tensorboardX import SummaryWriter
 import SAC
 
 # Train param
-kLoadPorgress = False
-kLoadBuffer = False
-kLoadActor = False
-kLoadCritic = False
-kLoadLogAlpha = False
-kLoadOptim = False
+kLoadPorgress = True
+kLoadBuffer = True
+kLoadActor = True
+kLoadCritic = True
+kLoadLogAlpha = True
+kLoadOptim = True
 
 kFixActorFlag = False
 kUsePriority = True
@@ -27,8 +27,8 @@ kUsePriority = True
 kPolicy = "SAC"
 kStateDim = 52
 kActionDim = 2
-kMaxEpisode =  1000
-kMaxStepSize = 50
+kMaxEpisode =  2000
+kMaxStepSize = 100
 kInitEpisode = 5
 K = 1
 # uav param
